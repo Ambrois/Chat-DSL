@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import uuid
+import json
 
 import streamlit as st
 
@@ -13,7 +14,217 @@ from gemini_client import call_gemini
 from state_store import load_chats, save_chats
 
 
+GRUVBOX_DARK_CSS = """
+<style>
+
+:root {
+  --gb-bg: #282828;
+  --gb-bg-1: #3c3836;
+  --gb-bg-2: #504945;
+  --gb-bg-3: #665c54;
+  --gb-bg-alpha: rgba(40, 40, 40, 0.86);
+  --gb-fg: #ebdbb2;
+  --gb-fg-2: #d5c4a1;
+  --gb-muted: #a89984;
+  --gb-red: #cc241d;
+  --gb-green: #98971a;
+  --gb-yellow: #d79921;
+  --gb-blue: #458588;
+  --gb-purple: #b16286;
+  --gb-aqua: #689d6a;
+  --gb-orange: #d65d0e;
+}
+
+html,
+body,
+[data-testid="stAppViewContainer"] {
+  background: var(--gb-bg);
+  color: var(--gb-fg);
+}
+
+[data-testid="stAppViewContainer"] > .main {
+  background: var(--gb-bg);
+}
+
+div[data-testid="stAppViewContainer"] > div,
+footer,
+div[data-testid="stBottom"],
+div[data-testid="stBottom"] > div,
+div[data-testid="stBottomBlockContainer"],
+div[data-testid="stBottomBlockContainer"] > div,
+div[data-testid="stChatInput"] ~ div,
+div[data-testid="stChatInput"] + div {
+  background: var(--gb-bg);
+}
+
+div[data-testid="stBottomBlockContainer"] {
+  padding-top: 0.48rem;
+  padding-bottom: 0.48rem;
+}
+
+div[data-testid="stBottomBlockContainer"] > div {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+section[data-testid="stSidebar"] {
+  background: var(--gb-bg-1);
+  border-right: 1px solid var(--gb-bg-3);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  color: var(--gb-fg);
+  letter-spacing: 0.01em;
+}
+
+a,
+a:visited {
+  color: var(--gb-purple);
+}
+
+small {
+  color: var(--gb-muted);
+}
+
+div[data-testid="stChatMessage"],
+div[data-testid="stChatMessageContent"] {
+  background: var(--gb-bg-1);
+  border: 1px solid var(--gb-bg-3);
+  border-radius: 14px;
+  margin: 0.35rem 0;
+  padding: 0.6rem 0.9rem;
+}
+
+div[data-testid="stChatMessage"][aria-label="user"],
+div[data-testid="stChatMessageContent"][aria-label="user"] {
+  background: var(--gb-bg-2);
+  border-color: var(--gb-bg-3);
+}
+
+div[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] p {
+  margin: 0.35rem 0;
+}
+
+div[data-testid="stChatInput"] {
+  background: var(--gb-bg-1);
+  border: 1px solid var(--gb-bg-3);
+  border-radius: 12px;
+}
+
+div[data-testid="stChatInput"] > div,
+section[data-testid="stChatInput"] > div,
+.stChatInput > div {
+  background: var(--gb-bg-1);
+}
+
+div[data-testid="stChatInput"] textarea,
+div[data-testid="stChatInput"] input,
+.stTextInput input,
+.stTextArea textarea,
+.stNumberInput input,
+.stSelectbox select {
+  background: var(--gb-bg-2);
+  border-color: var(--gb-bg-3);
+  color: var(--gb-fg);
+}
+
+div[data-testid="stChatInput"] textarea::placeholder,
+div[data-testid="stChatInput"] input::placeholder,
+.stTextInput input::placeholder,
+.stTextArea textarea::placeholder {
+  color: var(--gb-muted);
+}
+
+.stButton > button {
+  background: var(--gb-bg-2);
+  border: 1px solid var(--gb-bg-3);
+  color: var(--gb-fg);
+}
+
+.stButton > button:hover {
+  border-color: var(--gb-yellow);
+}
+
+code,
+pre,
+kbd {
+  color: var(--gb-fg);
+}
+
+header[data-testid="stHeader"],
+div[data-testid="stHeader"] {
+  background: var(--gb-bg);
+  border-bottom: none;
+  height: 3.9rem;
+  min-height: 3.9rem;
+  padding: 0 0.75rem;
+  box-sizing: border-box;
+}
+
+header[data-testid="stHeader"] * {
+  color: var(--gb-fg);
+}
+
+header[data-testid="stHeader"] button,
+header[data-testid="stHeader"] [role="button"] {
+  min-height: 1.75rem;
+  height: 1.75rem;
+  padding: 0 0.35rem;
+  font-size: 0.85rem;
+}
+
+header[data-testid="stHeader"] svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+[data-testid="stSidebar"] .sidebar-chats-label {
+  font-weight: 700;
+  font-size: 1.15rem;
+  margin-bottom: 0.35rem;
+  color: var(--gb-fg);
+}
+
+[role="dialog"] {
+  width: min(96vw, 1200px);
+  max-width: 96vw;
+}
+
+.block-container {
+  max-width: 960px;
+  padding-top: 2rem;
+}
+</style>
+"""
+
+THEMES = {
+    "Gruvbox Dark": GRUVBOX_DARK_CSS,
+    "Gruvbox Scholar": GRUVBOX_DARK_CSS,
+    "Default": "",
+}
+THEME_DEFAULT = "Gruvbox Dark"
+THEME_ORDER = ["Gruvbox Dark", "Default"]
+
+
+def _apply_theme(theme_name: str) -> None:
+    css = THEMES.get(theme_name, "")
+    if css:
+        st.markdown(css, unsafe_allow_html=True)
+
+
 st.set_page_config(page_title="Chat DSL", layout="wide")
+
+if "draft_sync" in st.session_state:
+    st.session_state["sidebar_draft"] = st.session_state.pop("draft_sync")
+
+current_theme = st.session_state.get("ui_theme", THEME_DEFAULT)
+if current_theme not in THEMES:
+    current_theme = THEME_DEFAULT
+_apply_theme(current_theme)
 
 st.title("Chat DSL")
 
@@ -57,6 +268,31 @@ def _rename_chat(chat_id: str) -> None:
 
 def _clear_composer() -> None:
     st.session_state["chat_composer"] = ""
+
+def _clear_draft() -> None:
+    st.session_state["draft_sync"] = ""
+    st.session_state["draft_dialog"] = ""
+
+def _format_var_preview(value: object, max_len: int = 140) -> str:
+    if isinstance(value, str):
+        preview = value.replace("\n", "\\n")
+    elif isinstance(value, (dict, list, tuple)):
+        try:
+            preview = json.dumps(value, ensure_ascii=True, separators=(",", ":"))
+        except TypeError:
+            preview = repr(value)
+    else:
+        preview = repr(value)
+    if len(preview) > max_len:
+        preview = preview[: max_len - 1] + "…"
+    return preview
+
+
+def _format_var_size(value: object) -> str:
+    try:
+        return str(len(value))
+    except TypeError:
+        return "-"
 
 def _run_dsl(
     input_text: str,
@@ -174,71 +410,83 @@ state = st.session_state.chats_state
 active_chat = _ensure_active_chat(state)
 
 with st.sidebar:
-    st.header("Chats")
+    st.markdown("<div class='sidebar-chats-label'>Chats</div>", unsafe_allow_html=True)
+    active_chat_name = active_chat.get("name", active_chat.get("id", "Chat"))
+    with st.expander(f"• {active_chat_name}", expanded=True):
+        chats = state.get("chats", [])
 
-    chats = state.get("chats", [])
+        if st.button("New chat", use_container_width=True):
+            chat = _new_chat(f"New Chat {len(chats) + 1}")
+            chats.append(chat)
+            state["active_chat_id"] = chat["id"]
+            save_chats(state)
+            st.rerun()
 
-    if st.button("New chat", use_container_width=True):
-        chat = _new_chat(f"New Chat {len(chats) + 1}")
-        chats.append(chat)
-        state["active_chat_id"] = chat["id"]
-        save_chats(state)
-        st.rerun()
+        for chat in chats:
+            chat_id = chat.get("id")
+            chat_name = chat.get("name", chat_id)
+            is_active = chat_id == state.get("active_chat_id")
 
-    for chat in chats:
-        chat_id = chat.get("id")
-        chat_name = chat.get("name", chat_id)
-        is_active = chat_id == state.get("active_chat_id")
-
-        cols = st.columns([0.88, 0.12])
-        with cols[0]:
-            label = f"• {chat_name}" if is_active else chat_name
-            if st.button(label, key=f"select_{chat_id}", use_container_width=True):
-                state["active_chat_id"] = chat_id
-                save_chats(state)
-                st.rerun()
-        with cols[1]:
-            popover = getattr(st, "popover", None)
-            if popover:
-                menu_ctx = popover("⋮")
-            else:
-                menu_ctx = st.expander("⋮", expanded=False)
-            with menu_ctx:
-                new_name = st.text_input(
-                    "Rename",
-                    value=chat_name,
-                    key=f"rename_{chat_id}",
-                    on_change=_rename_chat,
-                    args=(chat_id,),
-                )
-
-                idx = chats.index(chat)
-                move_up = st.button(
-                    "Move up", key=f"up_{chat_id}", use_container_width=True
-                )
-                move_down = st.button(
-                    "Move down", key=f"down_{chat_id}", use_container_width=True
-                )
-                if move_up and idx > 0:
-                    chats[idx - 1], chats[idx] = chats[idx], chats[idx - 1]
+            cols = st.columns([0.88, 0.12])
+            with cols[0]:
+                label = f"• {chat_name}" if is_active else chat_name
+                if st.button(label, key=f"select_{chat_id}", use_container_width=True):
+                    state["active_chat_id"] = chat_id
                     save_chats(state)
                     st.rerun()
-                if move_down and idx < len(chats) - 1:
-                    chats[idx + 1], chats[idx] = chats[idx], chats[idx + 1]
-                    save_chats(state)
-                    st.rerun()
+            with cols[1]:
+                popover = getattr(st, "popover", None)
+                if popover:
+                    menu_ctx = popover("⋮")
+                else:
+                    menu_ctx = st.expander("⋮", expanded=False)
+                with menu_ctx:
+                    new_name = st.text_input(
+                        "Rename",
+                        value=chat_name,
+                        key=f"rename_{chat_id}",
+                        on_change=_rename_chat,
+                        args=(chat_id,),
+                    )
 
-                if st.button(
-                    "Delete", key=f"delete_{chat_id}", use_container_width=True
-                ):
-                    chats[:] = [c for c in chats if c.get("id") != chat_id]
-                    _ensure_active_chat(state)
-                    save_chats(state)
-                    st.rerun()
+                    idx = chats.index(chat)
+                    move_up = st.button(
+                        "Move up", key=f"up_{chat_id}", use_container_width=True
+                    )
+                    move_down = st.button(
+                        "Move down", key=f"down_{chat_id}", use_container_width=True
+                    )
+                    if move_up and idx > 0:
+                        chats[idx - 1], chats[idx] = chats[idx], chats[idx - 1]
+                        save_chats(state)
+                        st.rerun()
+                    if move_down and idx < len(chats) - 1:
+                        chats[idx + 1], chats[idx] = chats[idx], chats[idx + 1]
+                        save_chats(state)
+                        st.rerun()
+
+                    if st.button(
+                        "Delete", key=f"delete_{chat_id}", use_container_width=True
+                    ):
+                        chats[:] = [c for c in chats if c.get("id") != chat_id]
+                        _ensure_active_chat(state)
+                        save_chats(state)
+                        st.rerun()
 
     st.divider()
 
     st.header("Settings")
+
+    st.subheader("Appearance")
+    theme_options = [name for name in THEME_ORDER if name in THEMES]
+    if current_theme not in theme_options:
+        current_theme = THEME_DEFAULT
+    st.selectbox(
+        "Theme",
+        theme_options,
+        index=theme_options.index(current_theme),
+        key="ui_theme",
+    )
 
     mode = st.radio("Mode", ["Use DSL", "Raw LLM"], index=0)
 
@@ -266,8 +514,105 @@ with st.sidebar:
         step=10,
     )
 
-    st.caption("Utilities")
-    st.button("Clear composer", use_container_width=True, on_click=_clear_composer)
+    st.subheader("Staging")
+    with st.form("sidebar_staging_form", clear_on_submit=False):
+        staging_text = st.text_area(
+            "Draft",
+            height=180,
+            placeholder="Draft here (Ctrl+Enter to send)",
+            key="sidebar_draft",
+            label_visibility="collapsed",
+            help="Ctrl+Enter sends this draft.",
+        )
+        draft_cols = st.columns(3)
+        with draft_cols[0]:
+            staging_send = st.form_submit_button(
+                "↩", type="secondary", help="Send", use_container_width=True
+            )
+        with draft_cols[1]:
+            st.form_submit_button(
+                "×", help="Clear", on_click=_clear_draft, use_container_width=True
+            )
+        with draft_cols[2]:
+            staging_fullscreen = st.form_submit_button(
+                "⤢", help="Fullscreen", use_container_width=True
+            )
+
+    if staging_fullscreen:
+        st.session_state["draft_fullscreen"] = True
+        st.session_state["draft_dialog"] = st.session_state.get("sidebar_draft", "")
+
+    if staging_send and staging_text:
+        if mode == "Use DSL":
+            if "/NEXT" in staging_text:
+                st.warning("You used /NEXT. Use /THEN to start a new step.")
+            _run_dsl(
+                staging_text,
+                use_gemini,
+                timeout_s,
+                selected_model,
+                chat_history,
+                chat_vars,
+                state,
+            )
+        else:
+            _run_raw(staging_text, timeout_s, selected_model, chat_history, state)
+
+draft_fullscreen = st.session_state.get("draft_fullscreen", False)
+dialog_available = hasattr(st, "dialog")
+if dialog_available:
+
+    @st.dialog("Draft editor")
+    def _draft_dialog() -> None:
+        with st.form("draft_dialog_form", clear_on_submit=False):
+            dialog_text = st.text_area(
+                "Draft editor",
+                height=500,
+                key="draft_dialog",
+                label_visibility="collapsed",
+                placeholder="Draft here (Ctrl+Enter to send)",
+            )
+            dialog_send = st.form_submit_button("Send", type="primary")
+
+        dialog_cols = st.columns(2)
+        with dialog_cols[0]:
+            st.button("Clear", on_click=_clear_draft, use_container_width=True)
+        with dialog_cols[1]:
+            if st.button("Close", use_container_width=True):
+                st.session_state["draft_sync"] = st.session_state.get(
+                    "draft_dialog", ""
+                )
+                st.session_state["draft_fullscreen"] = False
+                st.rerun()
+
+        if dialog_send and dialog_text:
+            if mode == "Use DSL":
+                if "/NEXT" in dialog_text:
+                    st.warning("You used /NEXT. Use /THEN to start a new step.")
+                _run_dsl(
+                    dialog_text,
+                    use_gemini,
+                    timeout_s,
+                    selected_model,
+                    chat_history,
+                    chat_vars,
+                    state,
+                )
+            else:
+                _run_raw(dialog_text, timeout_s, selected_model, chat_history, state)
+            st.session_state["draft_sync"] = st.session_state.get("draft_dialog", "")
+            st.session_state["draft_fullscreen"] = False
+            st.rerun()
+
+if draft_fullscreen:
+    if dialog_available:
+        st.session_state.setdefault(
+            "draft_dialog", st.session_state.get("sidebar_draft", "")
+        )
+        _draft_dialog()
+    else:
+        st.info("Fullscreen editor requires a newer Streamlit version.")
+        st.session_state["draft_fullscreen"] = False
 
 chat_slot = st.container()
 chat_history = active_chat["history"]
@@ -284,7 +629,13 @@ if prompt:
         if "/NEXT" in prompt:
             st.warning("You used /NEXT. Use /THEN to start a new step.")
         _run_dsl(
-            prompt, use_gemini, timeout_s, selected_model, chat_history, chat_vars, state
+            prompt,
+            use_gemini,
+            timeout_s,
+            selected_model,
+            chat_history,
+            chat_vars,
+            state,
         )
     else:
         _run_raw(prompt, timeout_s, selected_model, chat_history, state)
@@ -294,10 +645,28 @@ active_last_run = last_runs.get(active_chat["id"])
 
 if mode == "Use DSL" and active_last_run:
     st.subheader("Variables")
-    st.json(active_last_run["vars"])
+    vars_data = active_last_run["vars"] or {}
+    if vars_data:
+        tabs = st.tabs(["Overview", "Raw JSON"])
+        with tabs[0]:
+            rows = []
+            for name in sorted(vars_data):
+                value = vars_data[name]
+                rows.append(
+                    {
+                        "Name": name,
+                        "Type": type(value).__name__,
+                        "Size": _format_var_size(value),
+                        "Preview": _format_var_preview(value),
+                    }
+                )
+            st.dataframe(rows, use_container_width=True, hide_index=True)
+        with tabs[1]:
+            st.json(vars_data)
+    else:
+        st.info("No variables yet.")
 
 with chat_slot:
-    st.subheader("Chat")
     for msg in chat_history:
         role = msg.get("role", "assistant")
         content = msg.get("content", "")
