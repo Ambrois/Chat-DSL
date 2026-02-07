@@ -46,25 +46,16 @@ body,
   background: var(--gb-bg);
 }
 
-div[data-testid="stAppViewContainer"] > div,
+div[data-testid="stAppViewContainer"] > div {
+  background: var(--gb-bg);
+}
+
 footer,
 div[data-testid="stBottom"],
 div[data-testid="stBottom"] > div,
 div[data-testid="stBottomBlockContainer"],
-div[data-testid="stBottomBlockContainer"] > div,
-div[data-testid="stChatInput"] ~ div,
-div[data-testid="stChatInput"] + div {
-  background: var(--gb-bg);
-}
-
-div[data-testid="stBottomBlockContainer"] {
-  padding-top: 0.48rem;
-  padding-bottom: 0.48rem;
-}
-
 div[data-testid="stBottomBlockContainer"] > div {
-  padding-top: 0;
-  padding-bottom: 0;
+  background: var(--gb-bg);
 }
 
 section[data-testid="stSidebar"] {
@@ -93,32 +84,27 @@ small {
 div[data-testid="stChatMessage"],
 div[data-testid="stChatMessageContent"] {
   background: var(--gb-bg-1);
-  border: 1px solid var(--gb-bg-3);
+  border: none;
   border-radius: 14px;
   margin: 0.35rem 0;
-  padding: 0.6rem 0.9rem;
+  padding: 0.35rem 0.9rem;
+  align-items: flex-start;
 }
 
 div[data-testid="stChatMessage"][aria-label="user"],
 div[data-testid="stChatMessageContent"][aria-label="user"] {
   background: var(--gb-bg-2);
-  border-color: var(--gb-bg-3);
 }
 
-div[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] p {
-  margin: 0.35rem 0;
+div[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] p,
+div[data-testid="stChatMessageContent"] [data-testid="stMarkdownContainer"] p {
+  margin: 0;
 }
 
-div[data-testid="stChatInput"] {
-  background: var(--gb-bg-1);
-  border: 1px solid var(--gb-bg-3);
-  border-radius: 12px;
-}
-
-div[data-testid="stChatInput"] > div,
-section[data-testid="stChatInput"] > div,
-.stChatInput > div {
-  background: var(--gb-bg-1);
+div[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"],
+div[data-testid="stChatMessageContent"] [data-testid="stMarkdownContainer"] {
+  padding-top: 0;
+  margin-top: -0.6rem;
 }
 
 div[data-testid="stChatInput"] textarea,
@@ -132,12 +118,33 @@ div[data-testid="stChatInput"] input,
   color: var(--gb-fg);
 }
 
+/* Selectbox (baseweb) styling */
+[data-testid="stSelectbox"] [role="combobox"],
+[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+  background: var(--gb-bg-2);
+  border-color: var(--gb-bg-3);
+  color: var(--gb-fg);
+}
+
+[data-testid="stSelectbox"] svg {
+  fill: var(--gb-fg);
+}
+
+/* Number input +/- buttons */
+[data-testid="stNumberInput"] button {
+  background: var(--gb-bg-2);
+  border-color: var(--gb-bg-3);
+  color: var(--gb-fg);
+}
+
 div[data-testid="stChatInput"] textarea::placeholder,
 div[data-testid="stChatInput"] input::placeholder,
 .stTextInput input::placeholder,
 .stTextArea textarea::placeholder {
   color: var(--gb-muted);
 }
+
+
 
 .stButton > button {
   background: var(--gb-bg-2);
@@ -182,12 +189,8 @@ header[data-testid="stHeader"] svg {
   height: 0.9rem;
 }
 
-[data-testid="stSidebar"] .sidebar-chats-label {
-  font-weight: 700;
-  font-size: 1.15rem;
-  margin-bottom: 0.35rem;
-  color: var(--gb-fg);
-}
+
+
 
 [role="dialog"] {
   width: min(96vw, 1200px);
@@ -288,11 +291,15 @@ def _format_var_preview(value: object, max_len: int = 140) -> str:
     return preview
 
 
-def _format_var_size(value: object) -> str:
-    try:
-        return str(len(value))
-    except TypeError:
-        return "-"
+def _approx_token_count(value: object) -> int:
+    if isinstance(value, str):
+        return len(value) // 4
+    if isinstance(value, (dict, list, tuple)):
+        try:
+            return len(json.dumps(value, ensure_ascii=True)) // 4
+        except TypeError:
+            return 0
+    return 0
 
 def _run_dsl(
     input_text: str,
@@ -410,60 +417,59 @@ state = st.session_state.chats_state
 active_chat = _ensure_active_chat(state)
 
 with st.sidebar:
-    st.markdown("<div class='sidebar-chats-label'>Chats</div>", unsafe_allow_html=True)
-    active_chat_name = active_chat.get("name", active_chat.get("id", "Chat"))
-    with st.expander(f"• {active_chat_name}", expanded=True):
-        chats = state.get("chats", [])
+    st.header("Chats")
 
-        if st.button("New chat", use_container_width=True):
-            chat = _new_chat(f"New Chat {len(chats) + 1}")
-            chats.append(chat)
-            state["active_chat_id"] = chat["id"]
-            save_chats(state)
-            st.rerun()
+    chats = state.get("chats", [])
 
-        for chat in chats:
-            chat_id = chat.get("id")
-            chat_name = chat.get("name", chat_id)
-            is_active = chat_id == state.get("active_chat_id")
+    if st.button("New chat", use_container_width=True):
+        chat = _new_chat(f"New Chat {len(chats) + 1}")
+        chats.append(chat)
+        state["active_chat_id"] = chat["id"]
+        save_chats(state)
+        st.rerun()
 
-            cols = st.columns([0.88, 0.12])
-            with cols[0]:
-                label = f"• {chat_name}" if is_active else chat_name
-                if st.button(label, key=f"select_{chat_id}", use_container_width=True):
-                    state["active_chat_id"] = chat_id
+    for chat in chats:
+        chat_id = chat.get("id")
+        chat_name = chat.get("name", chat_id)
+        is_active = chat_id == state.get("active_chat_id")
+
+        cols = st.columns([0.82, 0.18], vertical_alignment="center")
+        with cols[0]:
+            label = f"• {chat_name}" if is_active else chat_name
+            if st.button(label, key=f"select_{chat_id}", use_container_width=True):
+                state["active_chat_id"] = chat_id
+                save_chats(state)
+                st.rerun()
+        with cols[1]:
+            popover = getattr(st, "popover", None)
+            if popover:
+                menu_ctx = popover("⋮")
+            else:
+                menu_ctx = st.expander("⋮", expanded=False)
+            with menu_ctx:
+                new_name = st.text_input(
+                    "Rename",
+                    value=chat_name,
+                    key=f"rename_{chat_id}",
+                    on_change=_rename_chat,
+                    args=(chat_id,),
+                )
+
+                idx = chats.index(chat)
+                move_up = st.button(
+                    "Move up", key=f"up_{chat_id}", use_container_width=True
+                )
+                move_down = st.button(
+                    "Move down", key=f"down_{chat_id}", use_container_width=True
+                )
+                if move_up and idx > 0:
+                    chats[idx - 1], chats[idx] = chats[idx], chats[idx - 1]
                     save_chats(state)
                     st.rerun()
-            with cols[1]:
-                popover = getattr(st, "popover", None)
-                if popover:
-                    menu_ctx = popover("⋮")
-                else:
-                    menu_ctx = st.expander("⋮", expanded=False)
-                with menu_ctx:
-                    new_name = st.text_input(
-                        "Rename",
-                        value=chat_name,
-                        key=f"rename_{chat_id}",
-                        on_change=_rename_chat,
-                        args=(chat_id,),
-                    )
-
-                    idx = chats.index(chat)
-                    move_up = st.button(
-                        "Move up", key=f"up_{chat_id}", use_container_width=True
-                    )
-                    move_down = st.button(
-                        "Move down", key=f"down_{chat_id}", use_container_width=True
-                    )
-                    if move_up and idx > 0:
-                        chats[idx - 1], chats[idx] = chats[idx], chats[idx - 1]
-                        save_chats(state)
-                        st.rerun()
-                    if move_down and idx < len(chats) - 1:
-                        chats[idx + 1], chats[idx] = chats[idx], chats[idx + 1]
-                        save_chats(state)
-                        st.rerun()
+                if move_down and idx < len(chats) - 1:
+                    chats[idx + 1], chats[idx] = chats[idx], chats[idx + 1]
+                    save_chats(state)
+                    st.rerun()
 
                     if st.button(
                         "Delete", key=f"delete_{chat_id}", use_container_width=True
@@ -647,22 +653,17 @@ if mode == "Use DSL" and active_last_run:
     st.subheader("Variables")
     vars_data = active_last_run["vars"] or {}
     if vars_data:
-        tabs = st.tabs(["Overview", "Raw JSON"])
-        with tabs[0]:
-            rows = []
-            for name in sorted(vars_data):
-                value = vars_data[name]
-                rows.append(
-                    {
-                        "Name": name,
-                        "Type": type(value).__name__,
-                        "Size": _format_var_size(value),
-                        "Preview": _format_var_preview(value),
-                    }
-                )
-            st.dataframe(rows, use_container_width=True, hide_index=True)
-        with tabs[1]:
-            st.json(vars_data)
+        rows = []
+        for name in sorted(vars_data):
+            value = vars_data[name]
+            rows.append(
+                {
+                    "Name": name,
+                    "Tokens": _approx_token_count(value),
+                    "Preview": _format_var_preview(value),
+                }
+            )
+        st.table(rows)
     else:
         st.info("No variables yet.")
 
