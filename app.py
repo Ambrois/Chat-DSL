@@ -670,6 +670,8 @@ if "chats_state" not in st.session_state:
     st.session_state.chats_state = load_chats()
 state = st.session_state.chats_state
 active_chat = _ensure_active_chat(state)
+chat_history = active_chat["history"]
+chat_vars = active_chat["vars"]
 
 with st.sidebar:
     st.header("Chats")
@@ -911,8 +913,6 @@ if draft_fullscreen:
         st.info("Fullscreen editor requires a newer Streamlit version.")
 
 chat_slot = st.container()
-chat_history = active_chat["history"]
-chat_vars = active_chat["vars"]
 
 composer_placeholder = (
     "Enter DSL (use /THEN to chain steps)"

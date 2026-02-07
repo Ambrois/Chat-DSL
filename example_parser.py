@@ -69,13 +69,18 @@ class StepBuilder:
     out_items: Optional[List[str]] = None
     as_vars: Optional[List[str]] = None  # variable names without sigil
 
+    def _has_nonblank_text(self) -> bool:
+        return any(line.strip() for line in self.text_lines)
+
     def is_empty(self) -> bool:
-        return (not self.text_lines) and (not self.directives)
+        return (not self._has_nonblank_text()) and (not self.directives)
 
     def build(self) -> Optional[Step]:
         if self.is_empty():
             return None
         step_text = "\n".join(self.text_lines).strip()
+        if step_text == "" and not self.directives:
+            return None
         return Step(
             index=self.index,
             start_line_no=self.start_line_no,
@@ -190,17 +195,28 @@ def _parse_directive_line(line: str) -> Optional[Tuple[str, str]]:
     if not s.startswith("/"):
         return None
 
-    if s.startswith("/THEN"):
-        rest = s[len("/THEN"):].strip()
-        return "THEN", rest
+    def _extract_payload(cmd: str) -> Optional[str]:
+        prefix = f"/{cmd}"
+        if not s.startswith(prefix):
+            return None
+        tail = s[len(prefix):]
+        # Match only exact command token, not prefixes like /OUTCOME or /THENx.
+        if tail == "":
+            return ""
+        if tail[0].isspace():
+            return tail.strip()
+        return None
+
+    then_payload = _extract_payload("THEN")
+    if then_payload is not None:
+        return "THEN", then_payload
 
     # Only parse directives at beginning of line (after whitespace)
     for cmd in ("FROM", "OUT", "AS"):
-        prefix = f"/{cmd}"
-        if s.startswith(prefix):
-            rest = s[len(prefix):].strip()
+        payload = _extract_payload(cmd)
+        if payload is not None:
             # payload is remainder of line
-            return cmd, rest
+            return cmd, payload
     return None
 
 
