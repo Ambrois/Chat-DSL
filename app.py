@@ -1,3 +1,5 @@
+'''Run with: streamlit run app.py'''
+
 from __future__ import annotations
 
 import os
@@ -11,9 +13,9 @@ from gemini_client import call_gemini
 from state_store import load_chats, save_chats
 
 
-st.set_page_config(page_title="DSL Runner", layout="wide")
+st.set_page_config(page_title="Chat DSL", layout="wide")
 
-st.title("DSL Runner")
+st.title("Chat DSL")
 
 def _new_chat(name: str) -> dict:
     safe_name = name.strip() or "Untitled"
@@ -53,12 +55,8 @@ def _rename_chat(chat_id: str) -> None:
     save_chats(state)
 
 
-def _clear_dsl_input() -> None:
-    st.session_state["dsl_input"] = ""
-
-
-def _clear_raw_input() -> None:
-    st.session_state["raw_input"] = ""
+def _clear_composer() -> None:
+    st.session_state["chat_composer"] = ""
 
 def _run_dsl(
     input_text: str,
@@ -240,77 +238,61 @@ with st.sidebar:
 
     st.divider()
 
-mode = st.radio("Mode", ["Parse + Execute", "Raw LLM"], index=0)
+    st.header("Settings")
 
-use_gemini = True
-if mode == "Parse + Execute":
-    use_gemini = st.toggle("Use Gemini executor", value=True)
+    mode = st.radio("Mode", ["Use DSL", "Raw LLM"], index=0)
 
-default_model = os.environ.get("GEMINI_MODEL", "gemini-3-flash-preview")
-model_options = [
-    ("Gemini 2.5 Flash", "gemini-2.5-flash"),
-    ("Gemini 3 Flash (preview)", "gemini-3-flash-preview"),
-    ("Gemini 3 Pro (preview)", "gemini-3-pro-preview"),
-]
-model_ids = [m[1] for m in model_options]
-model_labels = [m[0] for m in model_options]
-model_index = model_ids.index(default_model) if default_model in model_ids else 0
-selected_label = st.selectbox("Model", model_labels, index=model_index)
-selected_model = model_options[model_labels.index(selected_label)][1]
+    use_gemini = True
+    if mode == "Use DSL":
+        use_gemini = st.toggle("Run executor (turn off for debugging)", value=True)
 
-timeout_s = st.number_input(
-    "Request timeout (seconds, 0 = no timeout)",
-    min_value=0,
-    max_value=600,
-    value=120,
-    step=10,
-)
+    default_model = os.environ.get("GEMINI_MODEL", "gemini-3-flash-preview")
+    model_options = [
+        ("Gemini 2.5 Flash", "gemini-2.5-flash"),
+        ("Gemini 3 Flash (preview)", "gemini-3-flash-preview"),
+        ("Gemini 3 Pro (preview)", "gemini-3-pro-preview"),
+    ]
+    model_ids = [m[1] for m in model_options]
+    model_labels = [m[0] for m in model_options]
+    model_index = model_ids.index(default_model) if default_model in model_ids else 0
+    selected_label = st.selectbox("Model", model_labels, index=model_index)
+    selected_model = model_options[model_labels.index(selected_label)][1]
+
+    timeout_s = st.number_input(
+        "Request timeout (seconds, 0 = no timeout)",
+        min_value=0,
+        max_value=600,
+        value=120,
+        step=10,
+    )
+
+    st.caption("Utilities")
+    st.button("Clear composer", use_container_width=True, on_click=_clear_composer)
 
 chat_slot = st.container()
 chat_history = active_chat["history"]
 chat_vars = active_chat["vars"]
 
-submit_from_hotkey = False
-
-st.subheader("Input")
-if mode == "Parse + Execute":
-    with st.form("dsl_form", clear_on_submit=False):
-        input_text = st.text_area(
-            "DSL text",
-            height=200,
-            help="Tip: Ctrl+Enter to run",
-            key="dsl_input",
-        )
-        run = st.form_submit_button("Run", type="primary")
-
-    if "/NEXT" in input_text:
-        st.warning("You used /NEXT. Use /THEN to start a new step.")
-
-    if run:
+composer_placeholder = (
+    "Enter DSL (use /THEN to chain steps)"
+    if mode == "Use DSL"
+    else "Send a message"
+)
+prompt = st.chat_input(composer_placeholder, key="chat_composer")
+if prompt:
+    if mode == "Use DSL":
+        if "/NEXT" in prompt:
+            st.warning("You used /NEXT. Use /THEN to start a new step.")
         _run_dsl(
-            input_text, use_gemini, timeout_s, selected_model, chat_history, chat_vars, state
+            prompt, use_gemini, timeout_s, selected_model, chat_history, chat_vars, state
         )
-
-    st.button("Clear input", key="clear_dsl_input", on_click=_clear_dsl_input)
-else:
-    with st.form("raw_form", clear_on_submit=False):
-        raw_text = st.text_area(
-            "Message",
-            height=200,
-            help="Tip: Ctrl+Enter to send",
-            key="raw_input",
-        )
-        send = st.form_submit_button("Send", type="primary")
-
-    if send:
-        _run_raw(raw_text, timeout_s, selected_model, chat_history, state)
-
-    st.button("Clear input", key="clear_raw_input", on_click=_clear_raw_input)
+    else:
+        _run_raw(prompt, timeout_s, selected_model, chat_history, state)
 
 last_runs = st.session_state.get("last_run_by_chat", {})
 active_last_run = last_runs.get(active_chat["id"])
 
-if mode == "Parse + Execute" and active_last_run:
+if mode == "Use DSL" and active_last_run:
     st.subheader("Variables")
     st.json(active_last_run["vars"])
 
