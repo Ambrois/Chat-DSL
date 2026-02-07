@@ -34,6 +34,9 @@ GRUVBOX_DARK_CSS = """
   --gb-purple: #b16286;
   --gb-aqua: #689d6a;
   --gb-orange: #d65d0e;
+  --gb-font-serif: "Bitstream Vera Serif", "DejaVu Serif", "Liberation Serif", Georgia, Cambria, "Times New Roman", serif;
+  --gb-font-weight: 500;
+  --gb-heading-weight: 680;
 }
 
 html,
@@ -41,6 +44,9 @@ body,
 [data-testid="stAppViewContainer"] {
   background: var(--gb-bg);
   color: var(--gb-fg);
+  font-family: var(--gb-font-serif);
+  font-weight: var(--gb-font-weight);
+  line-height: 1.45;
 }
 
 [data-testid="stAppViewContainer"] > .main {
@@ -49,6 +55,22 @@ body,
 
 div[data-testid="stAppViewContainer"] > div {
   background: var(--gb-bg);
+}
+
+[data-testid="stAppViewContainer"] *,
+section[data-testid="stSidebar"] *,
+header[data-testid="stHeader"] * {
+  font-family: var(--gb-font-serif) !important;
+}
+
+.stTextInput input,
+.stTextArea textarea,
+.stNumberInput input,
+[data-testid="stSelectbox"] [role="combobox"],
+.stButton > button,
+[data-testid="stChatInput"] textarea,
+[data-testid="stChatInput"] input {
+  font-family: var(--gb-font-serif);
 }
 
 footer,
@@ -68,9 +90,12 @@ h1,
 h2,
 h3,
 h4,
-h5 {
+h5,
+h6 {
   color: var(--gb-fg);
   letter-spacing: 0.01em;
+  font-family: var(--gb-font-serif) !important;
+  font-weight: var(--gb-heading-weight) !important;
 }
 
 a,
@@ -161,6 +186,8 @@ code,
 pre,
 kbd {
   color: var(--gb-fg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+  font-weight: 500;
 }
 
 header[data-testid="stHeader"],
@@ -243,13 +270,202 @@ div[data-baseweb="modal"] {
 </style>
 """
 
+GRUVBOX_CODE_FONT_OVERRIDES = """
+<style>
+:root {
+  --gb-font-serif: "IBM Plex Mono", "JetBrains Mono", "Fira Code", "Cascadia Mono", "Cascadia Code", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --gb-font-weight: 500;
+  --gb-heading-weight: 620;
+}
+</style>
+"""
+
+TEXTBOOK_THEME_OVERRIDES = """
+<style>
+:root {
+  --gb-bg: #f4ecd8;
+  --gb-bg-1: #efe4cc;
+  --gb-bg-2: #e7d7b9;
+  --gb-bg-3: #c6b08b;
+  --gb-bg-alpha: rgba(244, 236, 216, 0.92);
+  --gb-fg: #3d2d1c;
+  --gb-fg-2: #4f3d28;
+  --gb-muted: #6f5c43;
+  --gb-red: #8a3c2c;
+  --gb-green: #47653a;
+  --gb-yellow: #8c6d2f;
+  --gb-blue: #3f5f7a;
+  --gb-purple: #70507d;
+  --gb-aqua: #3f6c67;
+  --gb-orange: #9b5a2b;
+  --gb-font-serif: "Bitstream Vera Serif", "DejaVu Serif", "Liberation Serif", Georgia, Cambria, "Times New Roman", serif;
+  --gb-font-weight: 500;
+  --gb-heading-weight: 700;
+}
+
+html,
+body,
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewContainer"] > .main,
+div[data-testid="stAppViewContainer"] > div {
+  background:
+    radial-gradient(circle at 14% 16%, rgba(255, 255, 255, 0.55), transparent 42%),
+    radial-gradient(circle at 84% 8%, rgba(127, 95, 58, 0.07), transparent 34%),
+    linear-gradient(180deg, #f8efdd 0%, #f0e1c2 100%);
+}
+
+[data-testid="stAppViewContainer"] {
+  color: var(--gb-fg);
+}
+
+[data-testid="stAppViewContainer"] :where(
+  p,
+  span,
+  label,
+  li,
+  th,
+  td,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  button,
+  input,
+  textarea,
+  div[data-testid="stMarkdownContainer"],
+  div[data-testid="stMarkdownContainer"] *
+) {
+  color: var(--gb-fg) !important;
+}
+
+a,
+a:visited {
+  color: #35566e !important;
+}
+
+[data-testid="stCaptionContainer"],
+small {
+  color: var(--gb-muted) !important;
+}
+
+section[data-testid="stSidebar"] {
+  box-shadow: inset -1px 0 0 #c6b08b;
+}
+
+header[data-testid="stHeader"],
+div[data-testid="stHeader"],
+div[data-testid="stDecoration"],
+div[data-testid="stToolbar"],
+div[data-testid="stAppHeader"],
+div[data-testid="stHeaderActionElements"] {
+  display: none !important;
+}
+
+footer,
+div[data-testid="stBottom"],
+div[data-testid="stBottom"] > div,
+div[data-testid="stBottomBlockContainer"],
+div[data-testid="stBottomBlockContainer"] > div {
+  background: var(--gb-bg-1) !important;
+  background-color: var(--gb-bg-1) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+div[data-testid="stChatMessage"],
+div[data-testid="stChatMessageContent"] {
+  border: 1px solid #d2c3a5;
+  box-shadow: 0 1px 0 rgba(96, 72, 45, 0.08);
+}
+
+div[data-testid="stChatMessage"][aria-label="user"],
+div[data-testid="stChatMessageContent"][aria-label="user"] {
+  border-color: #c5b18d;
+}
+
+.stButton > button {
+  background: #e8d8b8;
+}
+
+.stButton > button:hover {
+  background: #eddcb9;
+}
+
+[data-testid="stPopover"] button,
+[data-testid="stPopover"] [role="button"] {
+  background: #e8d8b8 !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  color: var(--gb-fg) !important;
+}
+
+[data-testid="stPopover"] button:hover,
+[data-testid="stPopover"] [role="button"]:hover {
+  background: #eddcb9 !important;
+}
+
+div[data-baseweb="popover"] {
+  background: #f2e5cc !important;
+  border: 1px solid #c6b08b !important;
+  color: var(--gb-fg) !important;
+}
+
+div[data-baseweb="popover"] * {
+  color: var(--gb-fg) !important;
+}
+
+div[data-baseweb="popover"] button,
+div[data-baseweb="popover"] [role="menuitem"] {
+  background: transparent !important;
+  border-color: #c6b08b !important;
+  color: var(--gb-fg) !important;
+}
+
+div[data-baseweb="popover"] button:hover,
+div[data-baseweb="popover"] [role="menuitem"]:hover {
+  background: #e8d8b8 !important;
+}
+
+[data-testid="stElementToolbar"] {
+  background: #efe4cc !important;
+  border: 1px solid #c6b08b !important;
+}
+
+[data-testid="stElementToolbar"] button {
+  background: transparent !important;
+  color: var(--gb-fg) !important;
+}
+
+[data-testid="stElementToolbar"] button:hover {
+  background: #e8d8b8 !important;
+}
+
+[data-testid="stPopover"] svg,
+div[data-baseweb="popover"] svg,
+[data-testid="stElementToolbar"] svg {
+  fill: var(--gb-fg) !important;
+  stroke: var(--gb-fg) !important;
+}
+
+div[data-baseweb="modal"] {
+  background-color: rgba(75, 55, 31, 0.18);
+}
+</style>
+"""
+
 THEMES = {
-    "Gruvbox Dark": GRUVBOX_DARK_CSS,
+    "Gruvbox Dark": GRUVBOX_DARK_CSS + GRUVBOX_CODE_FONT_OVERRIDES,
+    "Paper White (WIP)": GRUVBOX_DARK_CSS + TEXTBOOK_THEME_OVERRIDES,
+    "Paper White": GRUVBOX_DARK_CSS + TEXTBOOK_THEME_OVERRIDES,
+    "Textbook": GRUVBOX_DARK_CSS + TEXTBOOK_THEME_OVERRIDES,
     "Gruvbox Scholar": GRUVBOX_DARK_CSS,
     "Default": "",
 }
 THEME_DEFAULT = "Gruvbox Dark"
-THEME_ORDER = ["Gruvbox Dark", "Default"]
+THEME_ORDER = ["Gruvbox Dark", "Paper White (WIP)", "Default"]
 
 
 def _apply_theme(theme_name: str) -> None:
