@@ -54,6 +54,66 @@
           "role": "assistant",
           "content": "{\n  \"error\": {\n    \"message\": \"Invalid or unrecognized instruction: 'testing testing'. Please provide a valid DSL instruction.\",\n    \"type\": \"InvalidInstructionError\"\n  }\n}",
           "mode": "dsl"
+        },
+        {
+          "role": "user",
+          "content": "can you say \"hello hei\"",
+          "mode": "dsl",
+          "meta": {
+            "parsed_steps": [
+              {
+                "index": 0,
+                "start_line_no": 1,
+                "text": "can you say \"hello hei\"",
+                "from_items": null,
+                "out_items": null,
+                "as_vars": null,
+                "directives": []
+              }
+            ],
+            "execution_logs": [
+              {
+                "step_index": 0,
+                "start_line_no": 1,
+                "text": "can you say \"hello hei\"",
+                "from_items": null,
+                "resolved_inputs": {},
+                "out_items": null,
+                "as_vars": null,
+                "notes": [],
+                "prompt": "You are executing a DSL step.\n\nInstruction:\ncan you say \"hello hei\"\n\nChat history (previous messages):\nuser: adsfasdf\nassistant: null\nuser: adsfasdf\nassistant: {\n  \"error\": {\n    \"message\": \"Invalid or unrecognized instruction: 'adsfasdf'. Please provide a valid DSL instruction.\",\n    \"type\": \"InvalidInstructionError\"\n  }\n}\nuser: sorry about that. What is today's date?\nassistant: Today's date is June 23, 2024.\nuser: pee pee poop poo\n\nWhat's going on\nassistant: {\n  \"error\": {\n    \"message\": \"Invalid or unrecognized instruction: 'pee pee poop poo'. Please provide a valid DSL instruction.\",\n    \"type\": \"InvalidInstructionError\"\n  }\n}\nuser: testing testing\nassistant: {\n  \"error\": {\n    \"message\": \"Invalid or unrecognized instruction: 'testing testing'. Please provide a valid DSL instruction.\",\n    \"type\": \"InvalidInstructionError\"\n  }\n}\n\nInputs (resolved):\nNone\n\nRequired outputs:\n- output\n\nReturn JSON only. No markdown. No code fences.",
+                "history_included": true,
+                "raw_response": "{\"output\": \"hello hei\"}",
+                "parsed_json": {
+                  "output": "hello hei"
+                }
+              }
+            ],
+            "vars_after": {}
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "hello hei",
+          "mode": "dsl",
+          "meta": {
+            "step_log": {
+              "step_index": 0,
+              "start_line_no": 1,
+              "text": "can you say \"hello hei\"",
+              "from_items": null,
+              "resolved_inputs": {},
+              "out_items": null,
+              "as_vars": null,
+              "notes": [],
+              "prompt": "You are executing a DSL step.\n\nInstruction:\ncan you say \"hello hei\"\n\nChat history (previous messages):\nuser: adsfasdf\nassistant: null\nuser: adsfasdf\nassistant: {\n  \"error\": {\n    \"message\": \"Invalid or unrecognized instruction: 'adsfasdf'. Please provide a valid DSL instruction.\",\n    \"type\": \"InvalidInstructionError\"\n  }\n}\nuser: sorry about that. What is today's date?\nassistant: Today's date is June 23, 2024.\nuser: pee pee poop poo\n\nWhat's going on\nassistant: {\n  \"error\": {\n    \"message\": \"Invalid or unrecognized instruction: 'pee pee poop poo'. Please provide a valid DSL instruction.\",\n    \"type\": \"InvalidInstructionError\"\n  }\n}\nuser: testing testing\nassistant: {\n  \"error\": {\n    \"message\": \"Invalid or unrecognized instruction: 'testing testing'. Please provide a valid DSL instruction.\",\n    \"type\": \"InvalidInstructionError\"\n  }\n}\n\nInputs (resolved):\nNone\n\nRequired outputs:\n- output\n\nReturn JSON only. No markdown. No code fences.",
+              "history_included": true,
+              "raw_response": "{\"output\": \"hello hei\"}",
+              "parsed_json": {
+                "output": "hello hei"
+              }
+            }
+          }
         }
       ],
       "vars": {}

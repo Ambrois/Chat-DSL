@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import uuid
 
 import streamlit as st
@@ -56,6 +57,7 @@ def _run_dsl(
     input_text: str,
     use_gemini: bool,
     timeout_s: float,
+    model: str | None,
     chat_history: list,
     chat_vars: dict,
     state: dict,
@@ -72,20 +74,45 @@ def _run_dsl(
     try:
         if use_gemini:
             ctx, logs, non_var_outputs = execute_steps(
-                steps, ctx, timeout_s=timeout_s, chat_history=chat_history
+                steps,
+                ctx,
+                timeout_s=timeout_s,
+                chat_history=chat_history,
+                model=model,
             )
         else:
             ctx, logs, non_var_outputs = execute_steps_stub(
-                steps, ctx, timeout_s=timeout_s, chat_history=chat_history
+                steps,
+                ctx,
+                timeout_s=timeout_s,
+                chat_history=chat_history,
+                model=model,
             )
     except Exception as e:
         st.error(f"Execution error: {e}")
         st.stop()
 
-    chat_history.append({"role": "user", "content": input_text, "mode": "dsl"})
+    steps_dicts = _steps_to_dicts(steps)
+    chat_history.append(
+        {
+            "role": "user",
+            "content": input_text,
+            "mode": "dsl",
+            "meta": {
+                "parsed_steps": steps_dicts,
+                "execution_logs": logs,
+                "vars_after": ctx,
+            },
+        }
+    )
+    output_logs = [log for log in logs if not log.get("as_vars")]
     if non_var_outputs:
-        for out in non_var_outputs:
-            chat_history.append({"role": "assistant", "content": out, "mode": "dsl"})
+        for idx, out in enumerate(non_var_outputs):
+            step_log = output_logs[idx] if idx < len(output_logs) else None
+            msg = {"role": "assistant", "content": out, "mode": "dsl"}
+            if step_log is not None:
+                msg["meta"] = {"step_log": step_log}
+            chat_history.append(msg)
     else:
         chat_history.append(
             {
@@ -99,7 +126,7 @@ def _run_dsl(
 
     last_runs = st.session_state.setdefault("last_run_by_chat", {})
     last_runs[active_chat["id"]] = {
-        "steps": _steps_to_dicts(steps),
+        "steps": steps_dicts,
         "logs": logs,
         "vars": ctx,
     }
@@ -108,19 +135,27 @@ def _run_dsl(
 def _run_raw(
     raw_text: str,
     timeout_s: float,
+    model: str | None,
     chat_history: list,
     state: dict,
 ) -> None:
     if raw_text.strip() == "":
         return
     try:
-        response_text = call_gemini(raw_text, timeout_s=timeout_s)
+        response_text = call_gemini(raw_text, model=model, timeout_s=timeout_s)
     except Exception as e:
         st.error(f"Execution error: {e}")
         st.stop()
 
     chat_history.append({"role": "user", "content": raw_text, "mode": "raw"})
-    chat_history.append({"role": "assistant", "content": response_text, "mode": "raw"})
+    chat_history.append(
+        {
+            "role": "assistant",
+            "content": response_text,
+            "mode": "raw",
+            "meta": {"raw_response": response_text},
+        }
+    )
     save_chats(state)
 
 if "chats_state" not in st.session_state:
@@ -199,6 +234,18 @@ use_gemini = True
 if mode == "Parse + Execute":
     use_gemini = st.toggle("Use Gemini executor", value=True)
 
+default_model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+model_options = [
+    ("Gemini 2.5 Flash", "gemini-2.5-flash"),
+    ("Gemini 3 Flash (preview)", "gemini-3-flash-preview"),
+    ("Gemini 3 Pro (preview)", "gemini-3-pro-preview"),
+]
+model_ids = [m[1] for m in model_options]
+model_labels = [m[0] for m in model_options]
+model_index = model_ids.index(default_model) if default_model in model_ids else 0
+selected_label = st.selectbox("Model", model_labels, index=model_index)
+selected_model = model_options[model_labels.index(selected_label)][1]
+
 timeout_s = st.number_input(
     "Request timeout (seconds, 0 = no timeout)",
     min_value=0,
@@ -213,7 +260,7 @@ chat_vars = active_chat["vars"]
 
 st.subheader("Input")
 if mode == "Parse + Execute":
-    with st.form("dsl_form", clear_on_submit=True):
+    with st.form("dsl_form", clear_on_submit=False):
         input_text = st.text_area(
             "DSL text",
             height=200,
@@ -223,11 +270,15 @@ if mode == "Parse + Execute":
         run = st.form_submit_button("Run", type="primary")
 
     if run:
-        _run_dsl(input_text, use_gemini, timeout_s, chat_history, chat_vars, state)
+        _run_dsl(
+            input_text, use_gemini, timeout_s, selected_model, chat_history, chat_vars, state
+        )
 
-    # staging removed
+    if st.button("Clear input", key="clear_dsl_input"):
+        st.session_state["dsl_input"] = ""
+        st.rerun()
 else:
-    with st.form("raw_form", clear_on_submit=True):
+    with st.form("raw_form", clear_on_submit=False):
         raw_text = st.text_area(
             "Message",
             height=200,
@@ -237,9 +288,11 @@ else:
         send = st.form_submit_button("Send", type="primary")
 
     if send:
-        _run_raw(raw_text, timeout_s, chat_history, state)
+        _run_raw(raw_text, timeout_s, selected_model, chat_history, state)
 
-    # staging removed
+    if st.button("Clear input", key="clear_raw_input"):
+        st.session_state["raw_input"] = ""
+        st.rerun()
 
 last_runs = st.session_state.get("last_run_by_chat", {})
 active_last_run = last_runs.get(active_chat["id"])
@@ -259,4 +312,27 @@ with chat_slot:
     for msg in chat_history:
         role = msg.get("role", "assistant")
         content = msg.get("content", "")
-        st.chat_message(role).write(content)
+        with st.chat_message(role):
+            if role == "assistant":
+                cols = st.columns([0.9, 0.1])
+                with cols[0]:
+                    st.write(content)
+                with cols[1]:
+                    popover = getattr(st, "popover", None)
+                    if popover:
+                        menu_ctx = popover("⋮")
+                    else:
+                        menu_ctx = st.expander("⋮", expanded=False)
+                    with menu_ctx:
+                        meta = msg.get("meta")
+                        if meta and "step_log" in meta:
+                            st.write("Parsed Output")
+                            st.json(meta["step_log"].get("parsed_json"))
+                            st.write("Execution Log")
+                            st.json(meta["step_log"])
+                        elif meta:
+                            st.json(meta)
+                        else:
+                            st.write("No details available.")
+            else:
+                st.write(content)

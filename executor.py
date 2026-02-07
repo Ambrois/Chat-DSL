@@ -134,6 +134,7 @@ def execute_steps_stub(
     context: Dict[str, Any],
     timeout_s: float | None = None,
     chat_history: List[Dict[str, Any]] | None = None,
+    model: str | None = None,
 ) -> Tuple[Dict[str, Any], List[Dict[str, Any]], List[str]]:
     """
     Stub executor.
@@ -182,6 +183,7 @@ def execute_steps(
     context: Dict[str, Any],
     timeout_s: float | None = None,
     chat_history: List[Dict[str, Any]] | None = None,
+    model: str | None = None,
 ) -> Tuple[Dict[str, Any], List[Dict[str, Any]], List[str]]:
     """
     Gemini-backed executor.
@@ -199,7 +201,7 @@ def execute_steps(
 
         history_ctx = chat_history if st.from_items is None else None
         prompt = _build_prompt(st, resolved_inputs, history_ctx)
-        raw_response = call_gemini(prompt, timeout_s=timeout_s)
+        raw_response = call_gemini(prompt, model=model, timeout_s=timeout_s)
 
         try:
             parsed = json.loads(raw_response)
