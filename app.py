@@ -298,12 +298,6 @@ last_runs = st.session_state.get("last_run_by_chat", {})
 active_last_run = last_runs.get(active_chat["id"])
 
 if mode == "Parse + Execute" and active_last_run:
-    st.subheader("Parsed Steps")
-    st.json(active_last_run["steps"])
-
-    st.subheader("Execution Logs")
-    st.json(active_last_run["logs"])
-
     st.subheader("Variables")
     st.json(active_last_run["vars"])
 
