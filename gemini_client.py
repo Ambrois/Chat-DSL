@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import random
+import time
 import urllib.error
 import urllib.request
 from typing import Optional
@@ -11,6 +13,8 @@ _DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 _API_BASE = os.environ.get(
     "GEMINI_API_BASE", "https://generativelanguage.googleapis.com/v1beta"
 )
+_RETRY_MAX = 3
+_RETRY_BASE_DELAY_S = 1.0
 
 def _get_default_timeout() -> float:
     raw = os.environ.get("GEMINI_TIMEOUT", "120")
@@ -56,14 +60,21 @@ def call_gemini(
     timeout = _get_default_timeout() if timeout_s is None else float(timeout_s)
     timeout_arg = None if timeout <= 0 else timeout
 
-    try:
-        with urllib.request.urlopen(req, timeout=timeout_arg) as resp:
-            data = json.load(resp)
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Gemini HTTP error {e.code}: {body}") from e
-    except urllib.error.URLError as e:
-        raise RuntimeError(f"Gemini connection error: {e}") from e
+    for attempt in range(_RETRY_MAX + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout_arg) as resp:
+                data = json.load(resp)
+            break
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="replace")
+            if e.code == 503 and attempt < _RETRY_MAX:
+                delay = _RETRY_BASE_DELAY_S * (2 ** attempt)
+                delay += random.random() * 0.25
+                time.sleep(delay)
+                continue
+            raise RuntimeError(f"Gemini HTTP error {e.code}: {body}") from e
+        except urllib.error.URLError as e:
+            raise RuntimeError(f"Gemini connection error: {e}") from e
 
     if "error" in data:
         raise RuntimeError(f"Gemini API error: {data['error']}")

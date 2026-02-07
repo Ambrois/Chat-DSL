@@ -76,7 +76,7 @@ Output contract
 Error handling
 - JSON parse failure -> hard error and stop.
 - Missing required keys -> hard error and stop.
-- No retry logic.
+- Retry logic for Gemini HTTP 503 only: exponential backoff, base 1s, max 3 retries.
 
 Execution results
 - Per step:

@@ -119,6 +119,11 @@ def _run_dsl(
                 "role": "assistant",
                 "content": "(no visible output; all steps produced variables)",
                 "mode": "dsl",
+                "meta": {
+                    "parsed_steps": steps_dicts,
+                    "execution_logs": logs,
+                    "vars_after": ctx,
+                },
             }
         )
     active_chat["vars"] = ctx
@@ -324,6 +329,13 @@ with chat_slot:
                             st.json(meta["step_log"].get("parsed_json"))
                             st.write("Execution Log")
                             st.json(meta["step_log"])
+                        elif meta and "execution_logs" in meta:
+                            st.write("Parsed Steps")
+                            st.json(meta.get("parsed_steps"))
+                            st.write("Execution Logs")
+                            st.json(meta.get("execution_logs"))
+                            st.write("Vars After")
+                            st.json(meta.get("vars_after"))
                         elif meta:
                             st.json(meta)
                         else:
