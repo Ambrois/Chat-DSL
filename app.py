@@ -196,6 +196,44 @@ header[data-testid="stHeader"] svg {
 [role="dialog"] {
   width: min(96vw, 1200px);
   max-width: 96vw;
+  background: var(--gb-bg-2);
+  color: var(--gb-fg);
+  border: 1px solid var(--gb-bg-3);
+}
+
+div[data-testid="stDialog"] [role="dialog"] {
+  background: var(--gb-bg-2);
+  color: var(--gb-fg);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+}
+
+div[data-testid="stDialog"] [role="dialog"] * {
+  color: var(--gb-fg);
+}
+
+div[data-testid="stDialog"] [data-testid="stMarkdownContainer"] p {
+  color: var(--gb-fg);
+}
+
+div[data-testid="stDialog"] textarea,
+div[data-testid="stDialog"] input {
+  background: var(--gb-bg-2);
+  border-color: var(--gb-bg-3);
+  color: var(--gb-fg);
+}
+
+div[data-testid="stDialog"] button {
+  background: var(--gb-bg-2);
+  border: 1px solid var(--gb-bg-3);
+  color: var(--gb-fg);
+}
+
+div[data-testid="stDialog"] button:hover {
+  border-color: var(--gb-yellow);
+}
+
+div[data-baseweb="modal"] {
+  background-color: rgba(40, 40, 40, 0.42);
 }
 
 .block-container {
@@ -580,6 +618,7 @@ with st.sidebar:
     if staging_fullscreen:
         st.session_state["draft_fullscreen"] = True
         st.session_state["draft_dialog"] = st.session_state.get("sidebar_draft", "")
+        st.rerun()
 
     if staging_send and staging_text:
         if mode == "Use DSL":
@@ -644,6 +683,9 @@ if dialog_available:
             st.rerun()
 
 if draft_fullscreen:
+    # Treat fullscreen as a one-shot open request so it doesn't reopen on
+    # unrelated reruns (e.g., creating a new chat).
+    st.session_state["draft_fullscreen"] = False
     if dialog_available:
         st.session_state.setdefault(
             "draft_dialog", st.session_state.get("sidebar_draft", "")
@@ -651,7 +693,6 @@ if draft_fullscreen:
         _draft_dialog()
     else:
         st.info("Fullscreen editor requires a newer Streamlit version.")
-        st.session_state["draft_fullscreen"] = False
 
 chat_slot = st.container()
 chat_history = active_chat["history"]
