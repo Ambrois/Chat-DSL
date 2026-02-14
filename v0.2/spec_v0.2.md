@@ -96,6 +96,8 @@ or with alternative ordering:
 A `/DEF` block may contain:
 - At most one `/AS`
 	- The payload provides a natural-language description of the value to be produced.
+	- Multi-line allowed.
+	- `/AS` payload starts after `/AS` and continues across following non-command lines until the next command line or EOF.
 	- If `/AS` is omitted, defaults to varname
 
 - At most one `/TYPE`
@@ -175,6 +177,7 @@ If the step defines at least one `/DEF`, the response must also include variable
 ### Parse-time errors
 - Duplicate `/TYPE` in a `/DEF`
 - Duplicate `/AS` in a `/DEF`
+- Empty `/AS` payload after continuation resolution
 - Invalid variable name
 - Referencing variable not in `/FROM`
 - `/FROM` referencing undefined variable
