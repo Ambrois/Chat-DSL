@@ -190,6 +190,22 @@ div[data-testid="stChatInput"] input::placeholder,
   border-color: var(--gb-yellow);
 }
 
+div[data-baseweb="popover"] {
+  min-width: 0 !important;
+  width: fit-content !important;
+  max-width: min(90vw, 22rem) !important;
+}
+
+div[data-baseweb="popover"] [data-testid="stVerticalBlock"] {
+  width: fit-content !important;
+  max-width: 100% !important;
+}
+
+div[data-baseweb="popover"] .stButton > button {
+  width: auto !important;
+  white-space: nowrap;
+}
+
 code,
 pre,
 kbd {
