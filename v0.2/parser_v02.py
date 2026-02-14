@@ -76,6 +76,22 @@ def _split_csv_items(payload: str) -> List[str]:
     return [item.strip() for item in payload.split(",") if item.strip()]
 
 
+def _last_def_marker(payload: str) -> Optional[str]:
+    markers = list(_DEF_MARKER_PATTERN.finditer(payload))
+    if not markers:
+        return None
+    return markers[-1].group(1).upper()
+
+
+def _supports_multiline_continuation(cmd: Command) -> bool:
+    name = cmd.name.upper()
+    if name in {"OUT", "AS"}:
+        return True
+    if name == "DEF":
+        return _last_def_marker(cmd.payload) == "AS"
+    return False
+
+
 def _validate_type_name(type_name: str, line_no: int) -> str:
     normalized = type_name.strip().lower()
     if normalized not in _ALLOWED_TYPES:
@@ -297,7 +313,7 @@ def parse_dsl(text: str, sigil: str = "@") -> List[Step]:
             builder.commands.append(Command(name=name, payload=payload, line_no=line_no))
             continue
 
-        if builder.commands and builder.commands[-1].name.upper() == "OUT":
+        if builder.commands and _supports_multiline_continuation(builder.commands[-1]):
             if builder.commands[-1].payload:
                 builder.commands[-1].payload += "\n" + line
             else:
