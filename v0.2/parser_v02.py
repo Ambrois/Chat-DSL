@@ -60,6 +60,7 @@ _COMMAND_PATTERN = re.compile(r"^\s*/([A-Za-z][A-Za-z0-9_]*)\b(?:\s+(.*))?$")
 _DEF_MARKER_PATTERN = re.compile(r"/(TYPE|AS)\b")
 _ALLOWED_TYPES = {"nat", "str", "int", "float", "bool"}
 _VAR_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_KNOWN_COMMANDS = {"FROM", "DEF", "OUT", "TYPE", "AS"}
 
 
 def _parse_command_line(line: str) -> Optional[tuple[str, str]]:
@@ -282,7 +283,17 @@ def parse_dsl(text: str, sigil: str = "@") -> List[Step]:
                     builder.text_lines.append(payload)
                 continue
 
+            if name not in _KNOWN_COMMANDS:
+                raise ParseError(f"Line {line_no}: unknown command /{name}")
+
             builder.commands.append(Command(name=name, payload=payload, line_no=line_no))
+            continue
+
+        if builder.commands and builder.commands[-1].name.upper() == "OUT":
+            if builder.commands[-1].payload:
+                builder.commands[-1].payload += "\n" + line
+            else:
+                builder.commands[-1].payload = line
             continue
 
         if builder.commands and line.strip():
