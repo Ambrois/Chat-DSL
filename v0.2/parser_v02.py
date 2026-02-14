@@ -231,8 +231,15 @@ def _finalize_step(builder: _StepBuilder, steps: List[Step], sigil: str) -> None
 
 
 def _extract_var_refs(text: str, sigil: str) -> set[str]:
-    pattern = re.compile(rf"{re.escape(sigil)}([A-Za-z_][A-Za-z0-9_]*)")
-    return set(pattern.findall(text or ""))
+    token_pattern = re.compile(
+        rf"(?<![A-Za-z0-9_]){re.escape(sigil)}([^\s,.;:!?()\[\]{{}}\"'`]+)"
+    )
+    refs: set[str] = set()
+    for token in token_pattern.findall(text or ""):
+        if not _VAR_NAME_PATTERN.match(token):
+            raise ParseError(f"invalid variable name {sigil}{token!s} in embedded reference")
+        refs.add(token)
+    return refs
 
 
 def _extract_step_embedded_refs(step: Step, sigil: str) -> set[str]:
@@ -245,6 +252,7 @@ def _extract_step_embedded_refs(step: Step, sigil: str) -> set[str]:
 def _validate_from_symbols(steps: List[Step], sigil: str) -> None:
     known_vars: set[str] = set()
     for step in steps:
+        embedded_refs = _extract_step_embedded_refs(step, sigil=sigil)
         if step.from_vars is not None:
             allowed = set(step.from_vars)
             for name in step.from_vars:
@@ -252,7 +260,7 @@ def _validate_from_symbols(steps: List[Step], sigil: str) -> None:
                     raise ParseError(
                         f"Step {step.index} (line {step.start_line_no}): /FROM references undefined variable {sigil}{name}"
                     )
-            for name in sorted(_extract_step_embedded_refs(step, sigil=sigil)):
+            for name in sorted(embedded_refs):
                 if name not in allowed:
                     raise ParseError(
                         f"Step {step.index} (line {step.start_line_no}): reference {sigil}{name} is not allowed by /FROM"
