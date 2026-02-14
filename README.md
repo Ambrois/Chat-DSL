@@ -1,4 +1,4 @@
-# Chat DSL Versioned Layout
+# Chat DSL
 
 - `v0.1/`: frozen v0.1 implementation snapshot
 - `v0.2/`: v0.2 design and implementation-in-progress
