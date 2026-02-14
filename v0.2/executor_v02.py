@@ -131,6 +131,46 @@ def _parse_runtime_response(raw_response: str, step: Step) -> Dict[str, Any]:
     return parsed
 
 
+def _validate_def_value(step: Step, var_name: str, type_name: str, value: Any) -> None:
+    if value is None:
+        raise ValueError(
+            f"Step {step.index} (line {step.start_line_no}): /DEF value for '{var_name}' cannot be null"
+        )
+
+    t = type_name.lower()
+    if t in {"nat", "str"}:
+        if not isinstance(value, str):
+            raise ValueError(
+                f"Step {step.index} (line {step.start_line_no}): '{var_name}' expected {t} (string)"
+            )
+        return
+
+    if t == "int":
+        if type(value) is not int:
+            raise ValueError(
+                f"Step {step.index} (line {step.start_line_no}): '{var_name}' expected int"
+            )
+        return
+
+    if t == "float":
+        if type(value) not in {int, float}:
+            raise ValueError(
+                f"Step {step.index} (line {step.start_line_no}): '{var_name}' expected float"
+            )
+        return
+
+    if t == "bool":
+        if type(value) is not bool:
+            raise ValueError(
+                f"Step {step.index} (line {step.start_line_no}): '{var_name}' expected bool"
+            )
+        return
+
+    raise ValueError(
+        f"Step {step.index} (line {step.start_line_no}): unsupported /TYPE '{type_name}'"
+    )
+
+
 def execute_steps(
     steps: List[Step],
     context: Dict[str, Any],
@@ -149,10 +189,16 @@ def execute_steps(
 
         parsed = _parse_runtime_response(response, st)
 
+        staged_updates: Dict[str, Any] = {}
         if st.defs:
             vars_payload = parsed["vars"]
             for spec in st.defs:
-                context[spec.var_name] = vars_payload[spec.var_name]
+                value = vars_payload[spec.var_name]
+                _validate_def_value(st, spec.var_name, spec.value_type, value)
+                staged_updates[spec.var_name] = value
+
+        # Commit only after all values in this step are validated.
+        context.update(staged_updates)
 
         visible_outputs.append(parsed["out"])
         logs.append(
@@ -163,6 +209,7 @@ def execute_steps(
                 "prompt": prompt,
                 "raw_response": response,
                 "parsed_json": parsed,
+                "staged_updates": staged_updates,
             }
         )
 
