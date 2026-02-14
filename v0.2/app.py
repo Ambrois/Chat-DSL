@@ -14,6 +14,13 @@ from executor_v02 import execute_steps
 from model_adapters_v02 import make_gemini_caller
 from gemini_client_v02 import call_gemini
 from state_store_v02 import load_chats, save_chats
+from versioning_v02 import (
+    backfill_history_metadata,
+    get_assistant_messages_for_run,
+    get_thread_versions,
+    new_message_id,
+    next_version_for_thread,
+)
 
 
 GRUVBOX_DARK_CSS = """
@@ -487,6 +494,12 @@ _apply_theme(current_theme)
 
 st.title("Chat DSL v0.2")
 
+st.session_state.setdefault("edit_target_chat_id", None)
+st.session_state.setdefault("edit_target_message_id", None)
+st.session_state.setdefault("versions_target_chat_id", None)
+st.session_state.setdefault("versions_target_thread_id", None)
+st.session_state.setdefault("versions_open", False)
+
 def _new_chat(name: str) -> dict:
     safe_name = name.strip() or "Untitled"
     return {
@@ -532,6 +545,36 @@ def _clear_draft() -> None:
     st.session_state["draft_sync"] = ""
     st.session_state["draft_dialog"] = ""
 
+
+def _clear_edit_state() -> None:
+    st.session_state["edit_target_chat_id"] = None
+    st.session_state["edit_target_message_id"] = None
+
+
+def _find_message_by_id(chat_history: list, message_id: str | None) -> dict | None:
+    if not message_id:
+        return None
+    for msg in chat_history:
+        if msg.get("id") == message_id:
+            return msg
+    return None
+
+
+def _start_edit_from_message(msg: dict, active_chat_id: str) -> None:
+    content = str(msg.get("content", ""))
+    st.session_state["edit_target_chat_id"] = active_chat_id
+    st.session_state["edit_target_message_id"] = msg.get("id")
+    st.session_state["draft_sync"] = content
+    st.session_state["draft_dialog"] = content
+    st.session_state["sidebar_draft"] = content
+    st.session_state["draft_fullscreen"] = True
+
+
+def _open_versions_for_thread(thread_id: str, active_chat_id: str) -> None:
+    st.session_state["versions_target_chat_id"] = active_chat_id
+    st.session_state["versions_target_thread_id"] = thread_id
+    st.session_state["versions_open"] = True
+
 def _format_var_preview(value: object, max_len: int = 140) -> str:
     if isinstance(value, str):
         preview = value.replace("\n", "\\n")
@@ -566,6 +609,7 @@ def _run_dsl(
     chat_history: list,
     chat_vars: dict,
     state: dict,
+    edited_from_message_id: str | None = None,
 ) -> None:
     if input_text.strip() == "":
         return
@@ -575,6 +619,7 @@ def _run_dsl(
         st.error(f"Parse error: {e}")
         st.stop()
 
+    vars_before = dict(chat_vars)
     ctx = dict(chat_vars)
     try:
         call_model = None
@@ -586,33 +631,71 @@ def _run_dsl(
         st.stop()
 
     steps_dicts = steps_to_dicts(steps)
+    run_id = new_message_id("run")
+    user_message_id = new_message_id("msg")
+    thread_id = user_message_id
+    version = 1
+    edited_from_id = None
+
+    edited_from_msg = _find_message_by_id(chat_history, edited_from_message_id)
+    if (
+        edited_from_msg
+        and edited_from_msg.get("role") == "user"
+        and edited_from_msg.get("mode") == "dsl"
+    ):
+        src_meta = edited_from_msg.get("meta", {})
+        thread_id = src_meta.get("thread_id") or edited_from_msg.get("id") or user_message_id
+        version = next_version_for_thread(chat_history, thread_id)
+        edited_from_id = edited_from_msg.get("id")
+
+    user_meta = {
+        "thread_id": thread_id,
+        "version": version,
+        "run_id": run_id,
+        "parsed_steps": steps_dicts,
+        "execution_logs": logs,
+        "vars_before": vars_before,
+        "vars_after": ctx,
+    }
+    if edited_from_id:
+        user_meta["edited_from_message_id"] = edited_from_id
+
     chat_history.append(
         {
+            "id": user_message_id,
             "role": "user",
             "content": input_text,
             "mode": "dsl",
-            "meta": {
-                "parsed_steps": steps_dicts,
-                "execution_logs": logs,
-                "vars_after": ctx,
-            },
+            "meta": user_meta,
         }
     )
     output_logs = logs
     if outputs:
         for idx, out in enumerate(outputs):
             step_log = output_logs[idx] if idx < len(output_logs) else None
-            msg = {"role": "assistant", "content": out, "mode": "dsl"}
+            msg = {
+                "id": new_message_id("msg"),
+                "role": "assistant",
+                "content": out,
+                "mode": "dsl",
+                "meta": {
+                    "run_id": run_id,
+                    "source_user_message_id": user_message_id,
+                },
+            }
             if step_log is not None:
-                msg["meta"] = {"step_log": step_log}
+                msg["meta"]["step_log"] = step_log
             chat_history.append(msg)
     else:
         chat_history.append(
             {
+                "id": new_message_id("msg"),
                 "role": "assistant",
                 "content": "(no visible output; all steps produced variables)",
                 "mode": "dsl",
                 "meta": {
+                    "run_id": run_id,
+                    "source_user_message_id": user_message_id,
                     "parsed_steps": steps_dicts,
                     "execution_logs": logs,
                     "vars_after": ctx,
@@ -645,13 +728,28 @@ def _run_raw(
         st.error(f"Execution error: {e}")
         st.stop()
 
-    chat_history.append({"role": "user", "content": raw_text, "mode": "raw"})
+    run_id = new_message_id("run")
+    user_message_id = new_message_id("msg")
     chat_history.append(
         {
+            "id": user_message_id,
+            "role": "user",
+            "content": raw_text,
+            "mode": "raw",
+            "meta": {"run_id": run_id},
+        }
+    )
+    chat_history.append(
+        {
+            "id": new_message_id("msg"),
             "role": "assistant",
             "content": response_text,
             "mode": "raw",
-            "meta": {"raw_response": response_text},
+            "meta": {
+                "run_id": run_id,
+                "source_user_message_id": user_message_id,
+                "raw_response": response_text,
+            },
         }
     )
     save_chats(state)
@@ -662,6 +760,15 @@ state = st.session_state.chats_state
 active_chat = _ensure_active_chat(state)
 chat_history = active_chat["history"]
 chat_vars = active_chat["vars"]
+
+if backfill_history_metadata(chat_history):
+    save_chats(state)
+
+if (
+    st.session_state.get("edit_target_chat_id") is not None
+    and st.session_state.get("edit_target_chat_id") != active_chat.get("id")
+):
+    _clear_edit_state()
 
 with st.sidebar:
     st.header("Chats")
@@ -799,6 +906,19 @@ with st.sidebar:
         step=10,
     )
 
+    edit_msg = None
+    if st.session_state.get("edit_target_chat_id") == active_chat.get("id"):
+        edit_msg = _find_message_by_id(
+            chat_history, st.session_state.get("edit_target_message_id")
+        )
+    if edit_msg is not None:
+        meta = edit_msg.get("meta", {})
+        version = meta.get("version", "?")
+        st.caption(f"Editing version v{version}. Sending will create a new version.")
+        if st.button("Cancel Edit", use_container_width=True):
+            _clear_edit_state()
+            st.rerun()
+
     st.subheader("Staging")
     with st.form("sidebar_staging_form", clear_on_submit=False):
         staging_text = st.text_area(
@@ -832,6 +952,9 @@ with st.sidebar:
         if mode == "Use DSL":
             if "/NEXT" in staging_text:
                 st.warning("You used /NEXT. Use /THEN to start a new step.")
+            edit_source_id = None
+            if st.session_state.get("edit_target_chat_id") == active_chat.get("id"):
+                edit_source_id = st.session_state.get("edit_target_message_id")
             _run_dsl(
                 staging_text,
                 use_gemini,
@@ -840,7 +963,9 @@ with st.sidebar:
                 chat_history,
                 chat_vars,
                 state,
+                edited_from_message_id=edit_source_id,
             )
+            _clear_edit_state()
         else:
             _run_raw(staging_text, timeout_s, selected_model, chat_history, state)
 
@@ -875,6 +1000,9 @@ if dialog_available:
             if mode == "Use DSL":
                 if "/NEXT" in dialog_text:
                     st.warning("You used /NEXT. Use /THEN to start a new step.")
+                edit_source_id = None
+                if st.session_state.get("edit_target_chat_id") == active_chat.get("id"):
+                    edit_source_id = st.session_state.get("edit_target_message_id")
                 _run_dsl(
                     dialog_text,
                     use_gemini,
@@ -883,11 +1011,64 @@ if dialog_available:
                     chat_history,
                     chat_vars,
                     state,
+                    edited_from_message_id=edit_source_id,
                 )
+                _clear_edit_state()
             else:
                 _run_raw(dialog_text, timeout_s, selected_model, chat_history, state)
             st.session_state["draft_sync"] = st.session_state.get("draft_dialog", "")
             st.session_state["draft_fullscreen"] = False
+            st.rerun()
+
+    @st.dialog("Message Versions")
+    def _versions_dialog() -> None:
+        target_chat_id = st.session_state.get("versions_target_chat_id")
+        thread_id = st.session_state.get("versions_target_thread_id")
+        if target_chat_id != active_chat.get("id") or not thread_id:
+            st.info("Open versions from a message in the active chat.")
+            return
+
+        versions = get_thread_versions(chat_history, thread_id)
+        if not versions:
+            st.info("No versions found for this message thread.")
+            return
+
+        labels = []
+        for msg in versions:
+            meta = msg.get("meta", {})
+            labels.append(f"v{meta.get('version', '?')} · {str(msg.get('id', ''))[:10]}")
+
+        selected_label = st.selectbox("Version", labels, index=len(labels) - 1)
+        selected_idx = labels.index(selected_label)
+        selected_msg = versions[selected_idx]
+        selected_meta = selected_msg.get("meta", {})
+
+        st.write("DSL")
+        st.code(str(selected_msg.get("content", "")), language="text")
+
+        run_id = selected_meta.get("run_id")
+        if run_id:
+            st.write("Model Responses")
+            run_msgs = get_assistant_messages_for_run(chat_history, run_id)
+            if run_msgs:
+                for i, amsg in enumerate(run_msgs, start=1):
+                    st.markdown(f"**Response {i}**")
+                    st.write(str(amsg.get("content", "")))
+            else:
+                st.caption("No assistant responses linked to this run.")
+
+        vars_before = selected_meta.get("vars_before")
+        vars_after = selected_meta.get("vars_after")
+        if vars_before is not None:
+            st.write("Vars Before")
+            st.json(vars_before)
+        if vars_after is not None:
+            st.write("Vars After")
+            st.json(vars_after)
+
+        if st.button("Edit This Version", type="primary", use_container_width=True):
+            _start_edit_from_message(selected_msg, active_chat.get("id"))
+            st.session_state["versions_open"] = False
             st.rerun()
 
 if draft_fullscreen:
@@ -902,6 +1083,13 @@ if draft_fullscreen:
     else:
         st.info("Fullscreen editor requires a newer Streamlit version.")
 
+if st.session_state.get("versions_open", False):
+    st.session_state["versions_open"] = False
+    if dialog_available:
+        _versions_dialog()
+    else:
+        st.info("Versions view requires a newer Streamlit version.")
+
 chat_slot = st.container()
 
 composer_placeholder = (
@@ -914,6 +1102,9 @@ if prompt:
     if mode == "Use DSL":
         if "/NEXT" in prompt:
             st.warning("You used /NEXT. Use /THEN to start a new step.")
+        edit_source_id = None
+        if st.session_state.get("edit_target_chat_id") == active_chat.get("id"):
+            edit_source_id = st.session_state.get("edit_target_message_id")
         _run_dsl(
             prompt,
             use_gemini,
@@ -922,7 +1113,9 @@ if prompt:
             chat_history,
             chat_vars,
             state,
+            edited_from_message_id=edit_source_id,
         )
+        _clear_edit_state()
     else:
         _run_raw(prompt, timeout_s, selected_model, chat_history, state)
 
@@ -992,6 +1185,23 @@ with chat_slot:
                         else:
                             menu_ctx = st.expander("⋮", expanded=False)
                         with menu_ctx:
+                            msg_id = str(msg.get("id", idx))
+                            msg_meta = msg.get("meta", {})
+                            thread_id = msg_meta.get("thread_id") or msg.get("id")
+                            if st.button(
+                                "Edit & Resend",
+                                key=f"edit_{active_chat['id']}_{msg_id}",
+                                use_container_width=True,
+                            ):
+                                _start_edit_from_message(msg, active_chat.get("id"))
+                                st.rerun()
+                            if thread_id and st.button(
+                                "Versions",
+                                key=f"versions_{active_chat['id']}_{msg_id}",
+                                use_container_width=True,
+                            ):
+                                _open_versions_for_thread(thread_id, active_chat.get("id"))
+                                st.rerun()
                             st.caption("Copy DSL")
                             st.code(str(content), language="text")
                 else:
