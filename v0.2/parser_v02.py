@@ -56,7 +56,16 @@ class _StepBuilder:
         )
 
 
-_THEN_PATTERN = re.compile(r"^\s*/THEN(?:\s+(.*))?$")
+_COMMAND_PATTERN = re.compile(r"^\s*/([A-Za-z][A-Za-z0-9_]*)\b(?:\s+(.*))?$")
+
+
+def _parse_command_line(line: str) -> Optional[tuple[str, str]]:
+    match = _COMMAND_PATTERN.match(line)
+    if not match:
+        return None
+    name = match.group(1).upper()
+    payload = (match.group(2) or "").strip()
+    return name, payload
 
 
 def _split_csv_items(payload: str) -> List[str]:
@@ -130,23 +139,20 @@ def parse_dsl(text: str, sigil: str = "@") -> List[Step]:
     steps: List[Step] = []
 
     for line_no, line in enumerate(lines, start=1):
-        then_match = _THEN_PATTERN.match(line)
-        if then_match:
-            step = builder.build()
-            if step is not None:
-                _populate_step_fields(step, sigil=sigil)
-                steps.append(step)
-            builder = _StepBuilder(index=len(steps), start_line_no=line_no)
-            inline_text = then_match.group(1)
-            if inline_text:
-                builder.text_lines.append(inline_text)
-            continue
+        cmd = _parse_command_line(line)
+        if cmd is not None:
+            name, payload = cmd
+            if name == "THEN":
+                step = builder.build()
+                if step is not None:
+                    _populate_step_fields(step, sigil=sigil)
+                    steps.append(step)
+                builder = _StepBuilder(index=len(steps), start_line_no=line_no)
+                if payload:
+                    builder.text_lines.append(payload)
+                continue
 
-        stripped = line.lstrip()
-        if stripped.startswith("/") and not stripped.startswith("/THEN"):
-            payload = stripped[1:].strip()
-            name, _, rest = payload.partition(" ")
-            builder.commands.append(Command(name=name, payload=rest.strip(), line_no=line_no))
+            builder.commands.append(Command(name=name, payload=payload, line_no=line_no))
             continue
 
         builder.text_lines.append(line)
