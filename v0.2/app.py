@@ -206,6 +206,19 @@ div[data-baseweb="popover"] > div {
   color: var(--gb-fg) !important;
 }
 
+div[data-testid="stChatMessage"] [data-testid="stPopover"] :is(button, [role="button"]),
+div[data-testid="stChatMessageContent"] [data-testid="stPopover"] :is(button, [role="button"]) {
+  background: var(--gb-bg-2) !important;
+  border: 1px solid var(--gb-bg-3) !important;
+  color: var(--gb-fg) !important;
+  box-shadow: none !important;
+}
+
+div[data-testid="stChatMessage"] [data-testid="stPopover"] :is(button, [role="button"]):hover,
+div[data-testid="stChatMessageContent"] [data-testid="stPopover"] :is(button, [role="button"]):hover {
+  border-color: var(--gb-yellow) !important;
+}
+
 div[data-baseweb="popover"] [data-testid="stVerticalBlock"] {
   width: fit-content !important;
   max-width: 100% !important;
