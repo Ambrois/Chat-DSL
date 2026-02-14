@@ -485,7 +485,7 @@ THEME_ORDER = ["Gruvbox Dark", "Paper White (WIP)", "Default"]
 SHARED_LAYOUT_CSS = """
 <style>
 :root {
-  --dsl-content-max-width: 900px;
+  --dsl-content-max-width: 780px;
 }
 
 div[data-testid="stAppViewContainer"] .main .block-container {
