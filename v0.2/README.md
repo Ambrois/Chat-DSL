@@ -1,6 +1,7 @@
 # Chat DSL v0.2
 
 This folder contains the v0.2 specification, parser/executor implementation, and tests.
+Checkpoint: UI parity migration with v0.1 layout is in progress.
 
 - `spec_v0.2.md`: formal v0.2 language and runtime specification
 - `parser_v02.py`: parser for v0.2 command syntax and parse-time validation
