@@ -52,3 +52,11 @@ Write summary
 /DEF summary /AS first line
 second line
 ```
+
+## Chat Versioning UX
+
+In chat history, user DSL messages have a `⋮` menu with:
+- `Edit & Resend`: opens the message content in the draft editor and sends as a new immutable version.
+- `Versions`: shows all versions for that message thread and the assistant responses for each run.
+
+Each DSL run is stored with stable metadata (`thread_id`, `version`, `run_id`) so previous versions and outputs remain inspectable.
