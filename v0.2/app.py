@@ -669,6 +669,9 @@ def _run_dsl(
     }
     if edited_from_id:
         user_meta["edited_from_message_id"] = edited_from_id
+        user_meta["source_cutoff_index"] = cutoff_index_for_version_view(
+            chat_history, edited_from_id
+        )
 
     chat_history.append(
         {

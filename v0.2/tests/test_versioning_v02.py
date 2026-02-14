@@ -124,3 +124,90 @@ def test_cutoff_index_for_version_view_replays_old_timeline() -> None:
     assert cutoff == find_message_index(history, "u2v2") - 1
     projected = project_visible_history(history, cutoff_index=cutoff)
     assert [m["id"] for m in projected] == ["u1", "a1", "u2v1", "a2", "u3v1", "a3"]
+
+
+def test_cutoff_index_for_version_view_handles_ancestor_replacement() -> None:
+    history = [
+        {
+            "id": "u1v1",
+            "role": "user",
+            "mode": "dsl",
+            "content": "u1-v1",
+            "meta": {"thread_id": "t1", "version": 1, "run_id": "r1"},
+        },
+        {"id": "a1", "role": "assistant", "mode": "dsl", "content": "a1", "meta": {"run_id": "r1"}},
+        {
+            "id": "u2v1",
+            "role": "user",
+            "mode": "dsl",
+            "content": "u2-v1",
+            "meta": {"thread_id": "t2", "version": 1, "run_id": "r2"},
+        },
+        {"id": "a2", "role": "assistant", "mode": "dsl", "content": "a2", "meta": {"run_id": "r2"}},
+        {
+            "id": "u1v2",
+            "role": "user",
+            "mode": "dsl",
+            "content": "u1-v2",
+            "meta": {
+                "thread_id": "t1",
+                "version": 2,
+                "run_id": "r3",
+                "edited_from_message_id": "u1v1",
+            },
+        },
+        {"id": "a1b", "role": "assistant", "mode": "dsl", "content": "a1b", "meta": {"run_id": "r3"}},
+    ]
+    cutoff = cutoff_index_for_version_view(history, "u2v1")
+    projected = project_visible_history(history, cutoff_index=cutoff)
+    assert [m["id"] for m in projected] == ["u1v1", "a1", "u2v1", "a2"]
+
+
+def test_project_visible_history_uses_source_cutoff_for_hidden_edit_source() -> None:
+    history = [
+        {
+            "id": "u1v1",
+            "role": "user",
+            "mode": "dsl",
+            "content": "u1-v1",
+            "meta": {"thread_id": "t1", "version": 1, "run_id": "r1"},
+        },
+        {"id": "a1", "role": "assistant", "mode": "dsl", "content": "a1", "meta": {"run_id": "r1"}},
+        {
+            "id": "u2v1",
+            "role": "user",
+            "mode": "dsl",
+            "content": "u2-v1",
+            "meta": {"thread_id": "t2", "version": 1, "run_id": "r2"},
+        },
+        {"id": "a2", "role": "assistant", "mode": "dsl", "content": "a2", "meta": {"run_id": "r2"}},
+        {
+            "id": "u1v2",
+            "role": "user",
+            "mode": "dsl",
+            "content": "u1-v2",
+            "meta": {
+                "thread_id": "t1",
+                "version": 2,
+                "run_id": "r3",
+                "edited_from_message_id": "u1v1",
+            },
+        },
+        {"id": "a1b", "role": "assistant", "mode": "dsl", "content": "a1b", "meta": {"run_id": "r3"}},
+        {
+            "id": "u2v2",
+            "role": "user",
+            "mode": "dsl",
+            "content": "u2-v2",
+            "meta": {
+                "thread_id": "t2",
+                "version": 2,
+                "run_id": "r4",
+                "edited_from_message_id": "u2v1",
+                "source_cutoff_index": 3,
+            },
+        },
+        {"id": "a2b", "role": "assistant", "mode": "dsl", "content": "a2b", "meta": {"run_id": "r4"}},
+    ]
+    projected = project_visible_history(history)
+    assert [m["id"] for m in projected] == ["u1v1", "a1", "u2v2", "a2b"]
