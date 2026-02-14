@@ -229,6 +229,19 @@ def _finalize_step(builder: _StepBuilder, steps: List[Step], sigil: str) -> None
     steps.append(step)
 
 
+def _validate_from_symbols(steps: List[Step], sigil: str) -> None:
+    known_vars: set[str] = set()
+    for step in steps:
+        if step.from_vars is not None:
+            for name in step.from_vars:
+                if name not in known_vars:
+                    raise ParseError(
+                        f"Step {step.index} (line {step.start_line_no}): /FROM references undefined variable {sigil}{name}"
+                    )
+        for spec in step.defs:
+            known_vars.add(spec.var_name)
+
+
 def parse_dsl(text: str, sigil: str = "@") -> List[Step]:
     """Parse DSL text into steps with raw commands and Step-2/Step-4 structured fields."""
     if not isinstance(text, str):
@@ -261,6 +274,7 @@ def parse_dsl(text: str, sigil: str = "@") -> List[Step]:
         builder.text_lines.append(line)
 
     _finalize_step(builder, steps, sigil=sigil)
+    _validate_from_symbols(steps, sigil=sigil)
     return steps
 
 

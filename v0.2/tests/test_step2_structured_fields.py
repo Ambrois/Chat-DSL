@@ -12,7 +12,10 @@ from parser_v02 import parse_dsl
 
 
 def test_populates_from_defs_and_multiline_out() -> None:
-    text = """Plan the response.
+    text = """Seed variables.
+/DEF topic
+/DEF audience
+/THEN Plan the response.
 /FROM @topic, @audience
 /DEF score /TYPE float /AS confidence score
 /DEF rationale
@@ -20,9 +23,9 @@ def test_populates_from_defs_and_multiline_out() -> None:
 /OUT include one caveat
 """
     steps = parse_dsl(text)
-    assert len(steps) == 1
+    assert len(steps) == 2
 
-    step = steps[0]
+    step = steps[1]
     assert step.from_vars == ["topic", "audience"]
     assert [d.var_name for d in step.defs] == ["score", "rationale"]
     assert [d.value_type for d in step.defs] == ["float", "nat"]

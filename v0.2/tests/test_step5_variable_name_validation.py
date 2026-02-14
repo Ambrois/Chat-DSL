@@ -27,8 +27,9 @@ def test_invalid_def_variable_names(name: str) -> None:
 
 @pytest.mark.parametrize("from_item", ["@x", "@_x", "@x1", "@x_1"])
 def test_valid_from_variable_references(from_item: str) -> None:
-    steps = parse_dsl(f"Write output\n/FROM {from_item}")
-    assert steps[0].from_vars == [from_item[1:]]
+    name = from_item[1:]
+    steps = parse_dsl(f"Define value\n/DEF {name}\n/THEN Use value\n/FROM {from_item}")
+    assert steps[1].from_vars == [name]
 
 
 @pytest.mark.parametrize(

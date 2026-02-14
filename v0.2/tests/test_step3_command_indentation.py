@@ -28,14 +28,20 @@ def _normalized(steps: list) -> list:
 
 
 def test_indented_and_non_indented_commands_parse_equally() -> None:
-    plain = """Plan the response.
+    plain = """Seed variables.
+/DEF topic
+/DEF audience
+/THEN Plan the response.
 /FROM @topic, @audience
 /DEF score /TYPE float /AS confidence score
 /OUT concise summary
 /THEN second step
 /OUT include one caveat
 """
-    indented = """Plan the response.
+    indented = """Seed variables.
+   /DEF topic
+ /DEF audience
+    /THEN Plan the response.
     /FROM @topic, @audience
   /DEF score /TYPE float /AS confidence score
      /OUT concise summary
