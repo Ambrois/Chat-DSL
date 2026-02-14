@@ -27,3 +27,26 @@ streamlit run v0.2/app.py
 App modes:
 - `Stub`: no external model call; executor uses built-in JSON stub outputs.
 - `Gemini`: uses `GEMINI_API_KEY` and expects model output to follow v0.2 JSON contract.
+
+## Multiline `/AS` in `/DEF`
+
+`/AS` payload for variable definitions can span multiple lines.
+Continuation lines are consumed until the next command line.
+
+Example:
+
+```txt
+Write summary
+/DEF summary
+/AS first line about @topic
+second line with extra detail
+third line
+```
+
+Inline `/DEF ... /AS ...` also supports continuation:
+
+```txt
+Write summary
+/DEF summary /AS first line
+second line
+```
