@@ -26,7 +26,7 @@ def test_populates_from_defs_and_multiline_out() -> None:
     assert step.from_vars == ["topic", "audience"]
     assert [d.var_name for d in step.defs] == ["score", "rationale"]
     assert [d.value_type for d in step.defs] == ["float", "nat"]
-    assert [d.as_text for d in step.defs] == ["confidence score", None]
+    assert [d.as_text for d in step.defs] == ["confidence score", "rationale"]
     assert step.out_text == "concise summary\ninclude one caveat"
 
 

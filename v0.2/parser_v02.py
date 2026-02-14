@@ -57,6 +57,8 @@ class _StepBuilder:
 
 
 _COMMAND_PATTERN = re.compile(r"^\s*/([A-Za-z][A-Za-z0-9_]*)\b(?:\s+(.*))?$")
+_DEF_MARKER_PATTERN = re.compile(r"/(TYPE|AS)\b")
+_ALLOWED_TYPES = {"nat", "str", "int", "float", "bool"}
 
 
 def _parse_command_line(line: str) -> Optional[tuple[str, str]]:
@@ -72,29 +74,83 @@ def _split_csv_items(payload: str) -> List[str]:
     return [item.strip() for item in payload.split(",") if item.strip()]
 
 
-def _parse_def_payload(payload: str, line_no: int) -> DefSpec:
+def _validate_type_name(type_name: str, line_no: int) -> str:
+    normalized = type_name.strip().lower()
+    if normalized not in _ALLOWED_TYPES:
+        raise ParseError(
+            f"Line {line_no}: invalid /TYPE value {type_name!r}; allowed: {sorted(_ALLOWED_TYPES)}"
+        )
+    return normalized
+
+
+@dataclass
+class _DefParseState:
+    spec: DefSpec
+    seen_type: bool = False
+    seen_as: bool = False
+
+
+def _parse_def_payload(payload: str, line_no: int) -> _DefParseState:
     text = payload.strip()
     if not text:
-        return DefSpec(var_name="", line_no=line_no)
+        raise ParseError(f"Line {line_no}: /DEF requires a variable name")
 
     parts = text.split(None, 1)
     var_name = parts[0]
     rest = parts[1] if len(parts) > 1 else ""
-    value_type = "nat"
-    as_text: Optional[str] = None
+    state = _DefParseState(spec=DefSpec(var_name=var_name, value_type="nat", line_no=line_no))
 
-    markers = list(re.finditer(r"/(TYPE|AS)\b", rest))
+    markers = list(_DEF_MARKER_PATTERN.finditer(rest))
+    if rest.strip() and not markers:
+        raise ParseError(
+            f"Line {line_no}: invalid /DEF payload after variable name; expected /TYPE and/or /AS"
+        )
     for i, marker in enumerate(markers):
         key = marker.group(1).upper()
         seg_start = marker.end()
         seg_end = markers[i + 1].start() if i + 1 < len(markers) else len(rest)
         value = rest[seg_start:seg_end].strip()
-        if key == "TYPE" and value:
-            value_type = value
-        elif key == "AS":
-            as_text = value
 
-    return DefSpec(var_name=var_name, value_type=value_type, as_text=as_text, line_no=line_no)
+        if key == "TYPE":
+            if state.seen_type:
+                raise ParseError(f"Line {line_no}: duplicate /TYPE in /DEF block")
+            if not value:
+                raise ParseError(f"Line {line_no}: /TYPE requires a value")
+            state.spec.value_type = _validate_type_name(value, line_no=line_no)
+            state.seen_type = True
+        elif key == "AS":
+            if state.seen_as:
+                raise ParseError(f"Line {line_no}: duplicate /AS in /DEF block")
+            if not value:
+                raise ParseError(f"Line {line_no}: /AS requires description text")
+            state.spec.as_text = value
+            state.seen_as = True
+
+    return state
+
+
+def _apply_def_block_command(state: _DefParseState, cmd: Command) -> None:
+    name = cmd.name.upper()
+    payload = cmd.payload.strip()
+    line_no = cmd.line_no
+
+    if name == "TYPE":
+        if state.seen_type:
+            raise ParseError(f"Line {line_no}: duplicate /TYPE in /DEF block")
+        if not payload:
+            raise ParseError(f"Line {line_no}: /TYPE requires a value")
+        state.spec.value_type = _validate_type_name(payload, line_no=line_no)
+        state.seen_type = True
+        return
+
+    if name == "AS":
+        if state.seen_as:
+            raise ParseError(f"Line {line_no}: duplicate /AS in /DEF block")
+        if not payload:
+            raise ParseError(f"Line {line_no}: /AS requires description text")
+        state.spec.as_text = payload
+        state.seen_as = True
+        return
 
 
 def _populate_step_fields(step: Step, sigil: str) -> None:
@@ -102,7 +158,9 @@ def _populate_step_fields(step: Step, sigil: str) -> None:
     defs: List[DefSpec] = []
     out_lines: List[str] = []
 
-    for cmd in step.commands:
+    i = 0
+    while i < len(step.commands):
+        cmd = step.commands[i]
         name = cmd.name.upper()
         if name == "FROM":
             vars_out: List[str] = []
@@ -112,10 +170,36 @@ def _populate_step_fields(step: Step, sigil: str) -> None:
                     token = token[len(sigil):].strip()
                 vars_out.append(token)
             from_vars = vars_out
-        elif name == "DEF":
-            defs.append(_parse_def_payload(cmd.payload, cmd.line_no))
-        elif name == "OUT":
+            i += 1
+            continue
+
+        if name == "DEF":
+            state = _parse_def_payload(cmd.payload, cmd.line_no)
+            i += 1
+            while i < len(step.commands):
+                nxt = step.commands[i]
+                nxt_name = nxt.name.upper()
+                if nxt_name not in {"TYPE", "AS"}:
+                    break
+                _apply_def_block_command(state, nxt)
+                i += 1
+
+            if not state.seen_as:
+                state.spec.as_text = state.spec.var_name
+            if not state.seen_type:
+                state.spec.value_type = "nat"
+            defs.append(state.spec)
+            continue
+
+        if name == "OUT":
             out_lines.append(cmd.payload)
+            i += 1
+            continue
+
+        if name in {"TYPE", "AS"}:
+            raise ParseError(f"Line {cmd.line_no}: /{name} is only valid inside a /DEF block")
+
+        i += 1
 
     step.from_vars = from_vars
     step.defs = defs
@@ -123,12 +207,7 @@ def _populate_step_fields(step: Step, sigil: str) -> None:
 
 
 def parse_dsl(text: str, sigil: str = "@") -> List[Step]:
-    """
-    Step 1 scaffold parser:
-    - splits steps by /THEN (leading indentation allowed)
-    - preserves natural-language step text
-    - stores non-/THEN command lines for later phases
-    """
+    """Parse DSL text into steps with raw commands and Step-2/Step-4 structured fields."""
     if not isinstance(text, str):
         raise ParseError("DSL input must be a string")
     if not isinstance(sigil, str) or len(sigil) != 1:
