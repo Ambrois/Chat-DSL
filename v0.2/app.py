@@ -566,7 +566,6 @@ def _start_edit_from_message(msg: dict, active_chat_id: str) -> None:
     st.session_state["edit_target_message_id"] = msg.get("id")
     st.session_state["draft_sync"] = content
     st.session_state["draft_dialog"] = content
-    st.session_state["sidebar_draft"] = content
     st.session_state["draft_fullscreen"] = True
 
 
