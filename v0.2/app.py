@@ -482,6 +482,31 @@ THEMES = {
 THEME_DEFAULT = "Gruvbox Dark"
 THEME_ORDER = ["Gruvbox Dark", "Paper White (WIP)", "Default"]
 
+SHARED_LAYOUT_CSS = """
+<style>
+:root {
+  --dsl-content-max-width: 900px;
+}
+
+div[data-testid="stAppViewContainer"] .main .block-container {
+  width: 100%;
+  max-width: min(calc(100vw - 1.5rem), var(--dsl-content-max-width)) !important;
+  padding-top: 2rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+div[data-testid="stBottomBlockContainer"],
+div[data-testid="stBottomBlockContainer"] > div,
+div[data-testid="stBottomBlockContainer"] [data-testid="stChatInput"] {
+  width: 100%;
+  max-width: min(calc(100vw - 1.5rem), var(--dsl-content-max-width)) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+</style>
+"""
+
 
 def _apply_theme(theme_name: str) -> None:
     css = THEMES.get(theme_name, "")
@@ -498,6 +523,7 @@ current_theme = st.session_state.get("ui_theme", THEME_DEFAULT)
 if current_theme not in THEMES:
     current_theme = THEME_DEFAULT
 _apply_theme(current_theme)
+st.markdown(SHARED_LAYOUT_CSS, unsafe_allow_html=True)
 
 st.title("Chat DSL v0.2")
 
