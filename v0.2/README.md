@@ -28,6 +28,8 @@ App modes:
 - `Stub`: no external model call; executor uses built-in JSON stub outputs.
 - `Gemini`: uses `GEMINI_API_KEY` and expects model output to follow v0.2 JSON contract.
 
+Implementation note: structured output schema enforcement is being integrated for Gemini mode.
+
 ## Multiline `/AS` in `/DEF`
 
 `/AS` payload for variable definitions can span multiple lines.
