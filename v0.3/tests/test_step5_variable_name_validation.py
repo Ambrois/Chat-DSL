@@ -29,7 +29,7 @@ def test_invalid_def_variable_names(name: str) -> None:
 def test_valid_from_variable_references(from_item: str) -> None:
     name = from_item[1:]
     steps = parse_dsl(f"Define value\n/DEF {name}\n/THEN Use value\n/FROM {from_item}")
-    assert steps[1].from_vars == [name]
+    assert [it.value for it in (steps[1].from_items or []) if it.kind == "var"] == [name]
 
 
 @pytest.mark.parametrize(

@@ -22,7 +22,7 @@ def test_from_accepts_previously_defined_variable() -> None:
 """
     steps = parse_dsl(text)
     assert len(steps) == 2
-    assert steps[1].from_vars == ["seed"]
+    assert [it.value for it in (steps[1].from_items or []) if it.kind == "var"] == ["seed"]
 
 
 @pytest.mark.parametrize(
@@ -49,4 +49,4 @@ def test_from_allows_redefined_variable_in_later_steps() -> None:
 """
     steps = parse_dsl(text)
     assert len(steps) == 3
-    assert steps[2].from_vars == ["x"]
+    assert [it.value for it in (steps[2].from_items or []) if it.kind == "var"] == ["x"]

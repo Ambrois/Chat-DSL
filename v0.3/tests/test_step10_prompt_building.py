@@ -37,14 +37,12 @@ def test_prompt_interpolates_embedded_refs_and_appends_non_embedded_inputs() -> 
     assert "Do not wrap JSON in markdown/code fences." in prompt
 
 
-def test_prompt_without_from_uses_all_context_and_excludes_embedded_values() -> None:
-    step = parse_dsl("Write answer for @topic\n/OUT short answer")[0]
-    prompt = build_step_prompt(step, context={"topic": "pricing", "tone": "direct"})
+def test_prompt_without_from_defaults_to_chat_only() -> None:
+    step = parse_dsl("Write answer from @CHAT\n/OUT short answer")[0]
+    prompt = build_step_prompt(step, context={"CHAT": "recent messages", "tone": "direct"})
 
-    assert "Write answer for pricing" in prompt
-    assert "Inputs:" in prompt
-    assert "- tone: direct" in prompt
-    assert "- topic:" not in prompt
+    assert "Write answer from recent messages" in prompt
+    assert "- tone: direct" not in prompt
     assert 'Example JSON shape:\n{"error": 0, "out": "done"}' in prompt
 
 

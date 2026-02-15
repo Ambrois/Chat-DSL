@@ -22,7 +22,7 @@ def test_from_accepts_mixed_variable_and_nat_items() -> None:
 """
     steps = parse_dsl(text)
     step = steps[1]
-    assert step.from_vars == ["notes"]
+    assert [item.value for item in (step.from_items or []) if item.kind == "var"] == ["notes"]
     assert step.from_items is not None
     assert [item.kind for item in step.from_items] == ["var", "nat", "nat"]
     assert step.from_items[1].value == "key constraints"

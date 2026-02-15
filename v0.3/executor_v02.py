@@ -40,9 +40,11 @@ def _interpolate(text: str, values: Dict[str, Any]) -> str:
 
 
 def _resolve_accessible_inputs(step: Step, context: Dict[str, Any]) -> Dict[str, Any]:
-    if step.from_vars is None:
-        return dict(context)
-    return {name: context[name] for name in step.from_vars if name in context}
+    if step.from_items is None:
+        return {"CHAT": context["CHAT"]} if "CHAT" in context else {}
+
+    names = [item.value for item in step.from_items if item.kind == "var"]
+    return {name: context[name] for name in names if name in context}
 
 
 def _render_chat_history_text(chat_history: List[str]) -> str:
@@ -87,12 +89,12 @@ def build_step_prompt(
     instruction = _interpolate(step.text, accessible).strip()
     blocks: List[str] = [f"Instruction:\n{instruction}" if instruction else "Instruction:"]
 
-    explicit_from = set(step.from_vars or [])
+    explicit_from = {item.value for item in (step.from_items or []) if item.kind == "var"}
     extra_inputs = [
         name
         for name in accessible
         if name not in embedded
-        and (name not in _BUILTIN_VAR_NAMES or step.from_vars is None or name in explicit_from)
+        and (name not in _BUILTIN_VAR_NAMES or name in explicit_from)
     ]
     nat_inputs = list(nat_inputs or [])
     if extra_inputs:

@@ -30,7 +30,6 @@ class Step:
     start_line_no: int
     text: str
     commands: List[Command] = field(default_factory=list)
-    from_vars: Optional[List[str]] = None
     from_items: Optional[List["FromItem"]] = None
     defs: List[DefSpec] = field(default_factory=list)
     out_text: Optional[str] = None
@@ -221,7 +220,6 @@ def _apply_def_block_command(state: _DefParseState, cmd: Command) -> None:
 
 
 def _populate_step_fields(step: Step, sigil: str) -> None:
-    from_vars: Optional[List[str]] = None
     from_items: Optional[List[FromItem]] = None
     defs: List[DefSpec] = []
     out_lines: List[str] = []
@@ -231,14 +229,10 @@ def _populate_step_fields(step: Step, sigil: str) -> None:
         cmd = step.commands[i]
         name = cmd.name.upper()
         if name == "FROM":
-            vars_out: List[str] = []
             items_out: List[FromItem] = []
             for item in _split_csv_items(cmd.payload):
                 parsed = _parse_from_item(item, line_no=cmd.line_no, sigil=sigil)
                 items_out.append(parsed)
-                if parsed.kind == "var":
-                    vars_out.append(parsed.value)
-            from_vars = vars_out
             from_items = items_out
             i += 1
             continue
@@ -271,7 +265,6 @@ def _populate_step_fields(step: Step, sigil: str) -> None:
 
         i += 1
 
-    step.from_vars = from_vars
     step.from_items = from_items
     step.defs = defs
     step.out_text = "\n".join(out_lines) if out_lines else None
@@ -312,26 +305,31 @@ def _validate_from_symbols(steps: List[Step], sigil: str) -> None:
     known_vars: set[str] = set(_RESERVED_READONLY_VARS)
     for step in steps:
         embedded_refs = _extract_step_embedded_refs(step, sigil=sigil)
-        if step.from_vars is not None:
-            allowed = set(step.from_vars)
-            for name in step.from_vars:
+        effective_from_items = step.from_items
+        if effective_from_items is None:
+            effective_from_items = [FromItem(kind="var", value="CHAT")]
+
+        allowed: set[str] = set()
+        for item in effective_from_items:
+            if item.kind == "var":
+                name = item.value
                 if name not in known_vars:
                     raise ParseError(
                         f"Step {step.index} (line {step.start_line_no}): /FROM references undefined variable {sigil}{name}"
                     )
-            if step.from_items:
-                for item in step.from_items:
-                    if item.kind == "nat":
-                        scope_name = item.scope_var or "ALL"
-                        if scope_name not in known_vars:
-                            raise ParseError(
-                                f"Step {step.index} (line {step.start_line_no}): /FROM references undefined variable {sigil}{scope_name}"
-                            )
-            for name in sorted(embedded_refs):
-                if name not in allowed:
+                allowed.add(name)
+            elif item.kind == "nat":
+                scope_name = item.scope_var or "ALL"
+                if scope_name not in known_vars:
                     raise ParseError(
-                        f"Step {step.index} (line {step.start_line_no}): reference {sigil}{name} is not allowed by /FROM"
+                        f"Step {step.index} (line {step.start_line_no}): /FROM references undefined variable {sigil}{scope_name}"
                     )
+
+        for name in sorted(embedded_refs):
+            if name not in allowed:
+                raise ParseError(
+                    f"Step {step.index} (line {step.start_line_no}): reference {sigil}{name} is not allowed by /FROM"
+                )
         for spec in step.defs:
             known_vars.add(spec.var_name)
 
@@ -388,7 +386,6 @@ def steps_to_dicts(steps: List[Step]) -> List[Dict[str, Any]]:
             "index": st.index,
             "start_line_no": st.start_line_no,
             "text": st.text,
-            "from_vars": st.from_vars,
             "from_items": [
                 {"kind": item.kind, "value": item.value, "scope_var": item.scope_var}
                 for item in (st.from_items or [])

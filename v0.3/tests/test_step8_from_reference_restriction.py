@@ -22,7 +22,7 @@ def test_from_allows_embedded_references_in_text_and_as_payload() -> None:
 """
     steps = parse_dsl(text)
     assert len(steps) == 2
-    assert steps[1].from_vars == ["topic"]
+    assert [it.value for it in (steps[1].from_items or []) if it.kind == "var"] == ["topic"]
     assert steps[1].defs[0].as_text == "concise summary of @topic"
 
 
@@ -50,12 +50,17 @@ def test_from_rejects_as_payload_reference_not_listed() -> None:
         parse_dsl(text)
 
 
-def test_references_are_unrestricted_when_from_is_omitted() -> None:
+def test_references_are_restricted_to_chat_when_from_is_omitted() -> None:
     text = """Define topic
 /DEF topic
 /THEN Write summary for @topic
 /OUT concise output
 """
-    steps = parse_dsl(text)
-    assert len(steps) == 2
-    assert steps[1].from_vars is None
+    with pytest.raises(ParseError, match="not allowed by /FROM"):
+        parse_dsl(text)
+
+
+def test_chat_reference_is_allowed_when_from_is_omitted() -> None:
+    steps = parse_dsl("Write summary for @CHAT\n/OUT concise output")
+    assert len(steps) == 1
+    assert steps[0].from_items is None

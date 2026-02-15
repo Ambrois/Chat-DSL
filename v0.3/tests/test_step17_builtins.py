@@ -4,13 +4,15 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 
 V03_DIR = Path(__file__).resolve().parents[1]
 if str(V03_DIR) not in sys.path:
     sys.path.insert(0, str(V03_DIR))
 
 from executor_v02 import execute_steps
-from parser_v02 import parse_dsl
+from parser_v02 import ParseError, parse_dsl
 
 
 def test_from_all_is_available_without_definition() -> None:
@@ -35,8 +37,8 @@ def test_from_all_is_available_without_definition() -> None:
     assert "- ALL: Chat history:\nhello\n\nVariables:\n- ALL:" not in prompt
 
 
-def test_from_omitted_still_supports_all_embedding() -> None:
-    steps = parse_dsl("Use this context: @ALL\n/OUT done")
+def test_from_omitted_supports_chat_embedding_only() -> None:
+    steps = parse_dsl("Use this context: @CHAT\n/OUT done")
     prompts: list[str] = []
 
     def fake_model(prompt: str, _: dict) -> str:
@@ -50,5 +52,9 @@ def test_from_omitted_still_supports_all_embedding() -> None:
         chat_history=["hello"],
     )
 
-    assert "Instruction:\nUse this context: Chat history:" in prompts[0]
-    assert "Variables:\n- topic: Safety" in prompts[0]
+    assert "Instruction:\nUse this context: hello" in prompts[0]
+
+
+def test_from_omitted_rejects_all_embedding() -> None:
+    with pytest.raises(ParseError, match="not allowed by /FROM"):
+        parse_dsl("Use this context: @ALL\n/OUT done")
