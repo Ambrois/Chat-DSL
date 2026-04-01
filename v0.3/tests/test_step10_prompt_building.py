@@ -61,6 +61,22 @@ def test_prompt_does_not_interpolate_email_like_text() -> None:
     assert "Inputs:\n- b: VALUE" in prompt
 
 
+def test_prompt_supports_custom_sigil_interpolation() -> None:
+    text = """Seed topic
+/DEF topic
+/THEN Draft summary for #topic
+/FROM #topic
+/DEF summary /AS concise summary for #topic
+/OUT readable language
+"""
+    steps = parse_dsl(text, sigil="#")
+    prompt = build_step_prompt(steps[1], context={"topic": "AI safety"})
+
+    assert "Draft summary for AI safety" in prompt
+    assert "- summary (nat): concise summary for AI safety" in prompt
+    assert "- topic:" not in prompt
+
+
 def test_execute_steps_uses_built_prompts() -> None:
     steps = parse_dsl("One\n/THEN Two")
     seen_calls: list[tuple[str, dict]] = []

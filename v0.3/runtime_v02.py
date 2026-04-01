@@ -21,13 +21,14 @@ def run_dsl_text(
     text: str,
     context: Dict[str, Any],
     call_model: Optional[ModelCall] = None,
+    sigil: str = "@",
 ) -> RunResult:
     """
     App-facing helper for parse + execute.
     Returns structured success/error output without raising into the UI loop.
     """
     try:
-        steps = parse_dsl(text)
+        steps = parse_dsl(text, sigil=sigil)
     except ParseError as exc:
         return RunResult(
             ok=False,

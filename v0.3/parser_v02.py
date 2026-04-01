@@ -33,6 +33,7 @@ class Step:
     from_items: Optional[List["FromItem"]] = None
     defs: List[DefSpec] = field(default_factory=list)
     out_text: Optional[str] = None
+    sigil: str = "@"
 
 
 @dataclass
@@ -52,7 +53,7 @@ class _StepBuilder:
     def is_empty(self) -> bool:
         return (not self.commands) and (not any(line.strip() for line in self.text_lines))
 
-    def build(self) -> Optional[Step]:
+    def build(self, sigil: str = "@") -> Optional[Step]:
         if self.is_empty():
             return None
         return Step(
@@ -60,6 +61,7 @@ class _StepBuilder:
             start_line_no=self.start_line_no,
             text="\n".join(self.text_lines).strip(),
             commands=list(self.commands),
+            sigil=sigil,
         )
 
 
@@ -271,7 +273,7 @@ def _populate_step_fields(step: Step, sigil: str) -> None:
 
 
 def _finalize_step(builder: _StepBuilder, steps: List[Step], sigil: str) -> None:
-    step = builder.build()
+    step = builder.build(sigil=sigil)
     if step is None:
         return
     if step.text.strip() == "":
@@ -386,6 +388,7 @@ def steps_to_dicts(steps: List[Step]) -> List[Dict[str, Any]]:
             "index": st.index,
             "start_line_no": st.start_line_no,
             "text": st.text,
+            "sigil": st.sigil,
             "from_items": [
                 {"kind": item.kind, "value": item.value, "scope_var": item.scope_var}
                 for item in (st.from_items or [])

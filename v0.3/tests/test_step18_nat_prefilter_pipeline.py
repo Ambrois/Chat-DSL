@@ -73,3 +73,39 @@ def test_prefilter_failure_stops_execution() -> None:
 
     with pytest.raises(RuntimeError, match="cheap failed"):
         execute_steps(steps, context={}, call_model=fake_main, cheap_model_call=broken_cheap)
+
+
+def test_nat_prefilter_uses_custom_sigil_in_prompts_and_labels() -> None:
+    dsl = """Seed notes
+/DEF notes
+/THEN Build answer
+/FROM key tasks /IN #notes
+/OUT done
+"""
+    steps = parse_dsl(dsl, sigil="#")
+    cheap_prompts: list[str] = []
+    main_prompts: list[str] = []
+    responses = iter(
+        [
+            json.dumps({"error": 0, "out": "ok1", "vars": {"notes": "A\nB\nC"}}),
+            json.dumps({"error": 0, "out": "ok2"}),
+        ]
+    )
+
+    def fake_cheap(prompt: str) -> str:
+        cheap_prompts.append(prompt)
+        return "TASKS ONLY"
+
+    def fake_main(prompt: str, _: dict) -> str:
+        main_prompts.append(prompt)
+        return next(responses)
+
+    execute_steps(
+        steps,
+        context={},
+        call_model=fake_main,
+        cheap_model_call=fake_cheap,
+    )
+
+    assert "Scope (#notes):\nA\nB\nC" in cheap_prompts[0]
+    assert "Inputs:\n- key tasks (from #notes): TASKS ONLY" in main_prompts[1]

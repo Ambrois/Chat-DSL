@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from functools import lru_cache
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypedDict
 
 from parser_v02 import FromItem, Step
@@ -15,8 +16,12 @@ class ResponseSchema(TypedDict):
 
 ModelCall = Callable[[str, ResponseSchema], str]
 CheapModelCall = Callable[[str], str]
-_REF_PATTERN = re.compile(r"(?<![A-Za-z0-9_])@([A-Za-z_][A-Za-z0-9_]*)\b")
 _BUILTIN_VAR_NAMES = {"ALL", "CHAT"}
+
+
+@lru_cache(maxsize=None)
+def _ref_pattern(sigil: str) -> re.Pattern[str]:
+    return re.compile(rf"(?<![A-Za-z0-9_]){re.escape(sigil)}([A-Za-z_][A-Za-z0-9_]*)\b")
 
 
 def _render_value(value: Any) -> str:
@@ -25,18 +30,20 @@ def _render_value(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
-def _extract_refs(text: str) -> set[str]:
-    return set(_REF_PATTERN.findall(text or ""))
+def _extract_refs(text: str, sigil: str) -> set[str]:
+    return set(_ref_pattern(sigil).findall(text or ""))
 
 
-def _interpolate(text: str, values: Dict[str, Any]) -> str:
+def _interpolate(text: str, values: Dict[str, Any], sigil: str) -> str:
+    pattern = _ref_pattern(sigil)
+
     def repl(match: re.Match[str]) -> str:
         name = match.group(1)
         if name in values:
             return _render_value(values[name])
         return match.group(0)
 
-    return _REF_PATTERN.sub(repl, text or "")
+    return pattern.sub(repl, text or "")
 
 
 def _resolve_accessible_inputs(step: Step, context: Dict[str, Any]) -> Dict[str, Any]:
@@ -80,13 +87,14 @@ def build_step_prompt(
     context: Dict[str, Any],
     nat_inputs: Optional[List[Tuple[str, str]]] = None,
 ) -> str:
+    sigil = step.sigil
     accessible = _resolve_accessible_inputs(step, context)
     embedded: set[str] = set()
-    embedded.update(_extract_refs(step.text))
+    embedded.update(_extract_refs(step.text, sigil))
     for spec in step.defs:
-        embedded.update(_extract_refs(spec.as_text or ""))
+        embedded.update(_extract_refs(spec.as_text or "", sigil))
 
-    instruction = _interpolate(step.text, accessible).strip()
+    instruction = _interpolate(step.text, accessible, sigil).strip()
     blocks: List[str] = [f"Instruction:\n{instruction}" if instruction else "Instruction:"]
 
     explicit_from = {item.value for item in (step.from_items or []) if item.kind == "var"}
@@ -112,7 +120,7 @@ def build_step_prompt(
     if step.defs:
         required_lines: List[str] = []
         for spec in step.defs:
-            desc = _interpolate(spec.as_text or spec.var_name, accessible)
+            desc = _interpolate(spec.as_text or spec.var_name, accessible, sigil)
             required_lines.append(f"- {spec.var_name} ({spec.value_type}): {desc}")
         blocks.append("Required variables:\n" + "\n".join(required_lines))
 
@@ -198,11 +206,11 @@ def _default_stub_response(step: Step) -> str:
     return json.dumps(payload)
 
 
-def _build_prefilter_prompt(description: str, scope_var: str, scope_text: str) -> str:
+def _build_prefilter_prompt(description: str, scope_var: str, scope_text: str, sigil: str) -> str:
     return (
         "Task: extract matching content with minimal rewriting.\n\n"
         f"Description:\n{description}\n\n"
-        f"Scope (@{scope_var}):\n{scope_text}\n\n"
+        f"Scope ({sigil}{scope_var}):\n{scope_text}\n\n"
         "Rules:\n"
         "- Return only text matching the description.\n"
         "- Keep original wording/order when possible.\n"
@@ -215,17 +223,18 @@ def _run_prefilter(
     item: FromItem,
     runtime_context: Dict[str, Any],
     cheap_model_call: Optional[CheapModelCall],
+    sigil: str,
 ) -> Tuple[str, str]:
     scope_var = item.scope_var or "ALL"
     scope_text = _render_value(runtime_context.get(scope_var, ""))
-    prompt = _build_prefilter_prompt(item.value, scope_var, scope_text)
+    prompt = _build_prefilter_prompt(item.value, scope_var, scope_text, sigil)
     if cheap_model_call is None:
         filtered_text = scope_text
     else:
         filtered_text = cheap_model_call(prompt)
     if not isinstance(filtered_text, str):
         raise ValueError("cheap prefilter call must return a string")
-    label = f"{item.value} (from @{scope_var})"
+    label = f"{item.value} (from {sigil}{scope_var})"
     return label, filtered_text
 
 
@@ -335,6 +344,7 @@ def execute_steps(
     chat_lines = list(chat_history or [])
 
     for st in steps:
+        sigil = st.sigil
         runtime_context = dict(context)
         runtime_context.update(_build_builtin_values(context, chat_lines + visible_outputs))
         nat_inputs: List[Tuple[str, str]] = []
@@ -342,7 +352,7 @@ def execute_steps(
         for item in st.from_items or []:
             if item.kind != "nat":
                 continue
-            label, filtered = _run_prefilter(item, runtime_context, cheap_model_call)
+            label, filtered = _run_prefilter(item, runtime_context, cheap_model_call, sigil)
             nat_inputs.append((label, filtered))
             prefilter_logs.append(
                 {

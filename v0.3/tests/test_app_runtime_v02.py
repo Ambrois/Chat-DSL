@@ -62,3 +62,24 @@ def test_run_dsl_text_preserves_prior_step_vars_after_later_failure() -> None:
     assert res.ok is False
     assert res.vars_after == {"a": 1}
     assert "Execution error:" in res.error
+
+
+def test_run_dsl_text_supports_custom_sigil() -> None:
+    responses = iter(
+        [
+            json.dumps({"error": 0, "out": "ok1", "vars": {"topic": "AI safety"}}),
+            json.dumps({"error": 0, "out": "ok2"}),
+        ]
+    )
+
+    res = run_dsl_text(
+        "Pick topic\n/DEF topic\n/THEN Summarize #topic\n/FROM #topic\n/OUT done",
+        context={},
+        call_model=lambda *_: next(responses),
+        sigil="#",
+    )
+
+    assert res.ok is True
+    assert res.outputs == ["ok1", "ok2"]
+    assert res.vars_after == {"topic": "AI safety"}
+    assert res.parsed_steps[1]["sigil"] == "#"

@@ -670,6 +670,7 @@ def _run_dsl(
     timeout_s: float,
     model: str | None,
     cheap_model: str | None,
+    sigil: str,
     chat_history: list,
     chat_vars: dict,
     state: dict,
@@ -678,7 +679,7 @@ def _run_dsl(
     if input_text.strip() == "":
         return
     try:
-        steps = parse_dsl(input_text, sigil="@")
+        steps = parse_dsl(input_text, sigil=sigil)
     except ParseError as e:
         st.error(f"Parse error: {e}")
         st.stop()
@@ -971,8 +972,20 @@ with st.sidebar:
     mode = st.radio("Mode", ["Use DSL", "Raw LLM"], index=0)
 
     use_gemini = True
+    dsl_sigil = "@"
     if mode == "Use DSL":
         use_gemini = st.toggle("Run executor (turn off for debugging)", value=True)
+        entered_sigil = st.text_input(
+            "Sigil",
+            value=st.session_state.get("dsl_sigil", "@"),
+            max_chars=1,
+            help="Single-character variable prefix used in embedded references and /FROM items.",
+            key="dsl_sigil",
+        )
+        if len(entered_sigil) == 1:
+            dsl_sigil = entered_sigil
+        else:
+            st.warning("Sigil must be exactly one character. Using @ until corrected.")
 
     default_model = os.environ.get("GEMINI_MODEL", "gemini-3-flash-preview")
     model_options = [
@@ -1055,6 +1068,7 @@ with st.sidebar:
                 timeout_s,
                 selected_model,
                 selected_cheap_model,
+                dsl_sigil,
                 chat_history,
                 chat_vars,
                 state,
@@ -1106,6 +1120,7 @@ if dialog_available:
                     timeout_s,
                     selected_model,
                     selected_cheap_model,
+                    dsl_sigil,
                     chat_history,
                     chat_vars,
                     state,
@@ -1258,6 +1273,7 @@ if prompt:
             timeout_s,
             selected_model,
             selected_cheap_model,
+            dsl_sigil,
             chat_history,
             chat_vars,
             state,
