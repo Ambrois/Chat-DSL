@@ -5,7 +5,7 @@ import re
 from functools import lru_cache
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypedDict
 
-from parser_v02 import FromItem, Step
+from parser_v02 import FromItem, IfNode, Program, ProgramNode, Step
 
 
 class ResponseSchema(TypedDict):
@@ -331,6 +331,126 @@ def _validate_def_value(step: Step, var_name: str, type_name: str, value: Any) -
     )
 
 
+def _execute_step_node(
+    step: Step,
+    context: Dict[str, Any],
+    logs: List[Dict[str, Any]],
+    visible_outputs: List[str],
+    chat_lines: List[str],
+    call_model: Optional[ModelCall],
+    cheap_model_call: Optional[CheapModelCall],
+) -> None:
+    sigil = step.sigil
+    runtime_context = dict(context)
+    runtime_context.update(_build_builtin_values(context, chat_lines + visible_outputs))
+    nat_inputs: List[Tuple[str, str]] = []
+    prefilter_logs: List[Dict[str, str]] = []
+    for item in step.from_items or []:
+        if item.kind != "nat":
+            continue
+        label, filtered = _run_prefilter(item, runtime_context, cheap_model_call, sigil)
+        nat_inputs.append((label, filtered))
+        prefilter_logs.append(
+            {
+                "description": item.value,
+                "scope_var": item.scope_var or "ALL",
+                "filtered_text": filtered,
+            }
+        )
+
+    prompt = build_step_prompt(step, runtime_context, nat_inputs=nat_inputs)
+    response_schema = build_response_schema(step)
+    if call_model is None:
+        response = _default_stub_response(step)
+    else:
+        response = call_model(prompt, response_schema)
+
+    parsed = _parse_runtime_response(response, step)
+
+    staged_updates: Dict[str, Any] = {}
+    if step.defs:
+        vars_payload = parsed["vars"]
+        for spec in step.defs:
+            value = vars_payload[spec.var_name]
+            _validate_def_value(step, spec.var_name, spec.value_type, value)
+            staged_updates[spec.var_name] = value
+
+    context.update(staged_updates)
+    visible_outputs.append(parsed["out"])
+    logs.append(
+        {
+            "node_kind": "step",
+            "step_index": step.index,
+            "start_line_no": step.start_line_no,
+            "text": step.text,
+            "prompt": prompt,
+            "response_schema": response_schema,
+            "raw_response": response,
+            "parsed_json": parsed,
+            "staged_updates": staged_updates,
+            "prefilter_logs": prefilter_logs,
+        }
+    )
+
+
+def _execute_program_nodes(
+    items: List[ProgramNode],
+    context: Dict[str, Any],
+    logs: List[Dict[str, Any]],
+    visible_outputs: List[str],
+    chat_lines: List[str],
+    call_model: Optional[ModelCall],
+    cheap_model_call: Optional[CheapModelCall],
+) -> None:
+    for item in items:
+        if isinstance(item, Step):
+            _execute_step_node(
+                item,
+                context,
+                logs,
+                visible_outputs,
+                chat_lines,
+                call_model,
+                cheap_model_call,
+            )
+            continue
+
+        if item.condition_var not in context:
+            raise ValueError(
+                f"Line {item.start_line_no}: missing /IF variable '{item.condition_var}' at runtime"
+            )
+
+        guard_value = context[item.condition_var]
+        if type(guard_value) is not bool:
+            raise ValueError(
+                f"Line {item.start_line_no}: /IF variable '{item.condition_var}' must be bool at runtime"
+            )
+
+        logs.append(
+            {
+                "node_kind": "if",
+                "start_line_no": item.start_line_no,
+                "condition_var": item.condition_var,
+                "condition_value": guard_value,
+                "execution": "executed" if guard_value else "skipped",
+            }
+        )
+
+        if not guard_value:
+            continue
+
+        branch_context = dict(context)
+        _execute_program_nodes(
+            item.items,
+            branch_context,
+            logs,
+            visible_outputs,
+            chat_lines,
+            call_model,
+            cheap_model_call,
+        )
+
+
 def execute_steps(
     steps: List[Step],
     context: Dict[str, Any],
@@ -344,57 +464,39 @@ def execute_steps(
     chat_lines = list(chat_history or [])
 
     for st in steps:
-        sigil = st.sigil
-        runtime_context = dict(context)
-        runtime_context.update(_build_builtin_values(context, chat_lines + visible_outputs))
-        nat_inputs: List[Tuple[str, str]] = []
-        prefilter_logs: List[Dict[str, str]] = []
-        for item in st.from_items or []:
-            if item.kind != "nat":
-                continue
-            label, filtered = _run_prefilter(item, runtime_context, cheap_model_call, sigil)
-            nat_inputs.append((label, filtered))
-            prefilter_logs.append(
-                {
-                    "description": item.value,
-                    "scope_var": item.scope_var or "ALL",
-                    "filtered_text": filtered,
-                }
-            )
-
-        prompt = build_step_prompt(st, runtime_context, nat_inputs=nat_inputs)
-        response_schema = build_response_schema(st)
-        if call_model is None:
-            response = _default_stub_response(st)
-        else:
-            response = call_model(prompt, response_schema)
-
-        parsed = _parse_runtime_response(response, st)
-
-        staged_updates: Dict[str, Any] = {}
-        if st.defs:
-            vars_payload = parsed["vars"]
-            for spec in st.defs:
-                value = vars_payload[spec.var_name]
-                _validate_def_value(st, spec.var_name, spec.value_type, value)
-                staged_updates[spec.var_name] = value
-
-        # Commit only after all values in this step are validated.
-        context.update(staged_updates)
-
-        visible_outputs.append(parsed["out"])
-        logs.append(
-            {
-                "step_index": st.index,
-                "start_line_no": st.start_line_no,
-                "text": st.text,
-                "prompt": prompt,
-                "response_schema": response_schema,
-                "raw_response": response,
-                "parsed_json": parsed,
-                "staged_updates": staged_updates,
-                "prefilter_logs": prefilter_logs,
-            }
+        _execute_step_node(
+            st,
+            context,
+            logs,
+            visible_outputs,
+            chat_lines,
+            call_model,
+            cheap_model_call,
         )
+
+    return context, logs, visible_outputs
+
+
+def execute_program(
+    program: Program,
+    context: Dict[str, Any],
+    call_model: Optional[ModelCall] = None,
+    chat_history: Optional[List[str]] = None,
+    cheap_model_call: Optional[CheapModelCall] = None,
+) -> Tuple[Dict[str, Any], List[Dict[str, Any]], List[str]]:
+    """Execute a v0.4 Program AST with nested /IF blocks."""
+    logs: List[Dict[str, Any]] = []
+    visible_outputs: List[str] = []
+    chat_lines = list(chat_history or [])
+
+    _execute_program_nodes(
+        program.items,
+        context,
+        logs,
+        visible_outputs,
+        chat_lines,
+        call_model,
+        cheap_model_call,
+    )
 
     return context, logs, visible_outputs
