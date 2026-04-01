@@ -37,6 +37,12 @@ class Step:
 
 
 @dataclass
+class Program:
+    items: List["Step"] = field(default_factory=list)
+    sigil: str = "@"
+
+
+@dataclass
 class FromItem:
     kind: str  # "var" | "nat"
     value: str  # var name for kind="var", description text for kind="nat"
@@ -336,8 +342,7 @@ def _validate_from_symbols(steps: List[Step], sigil: str) -> None:
             known_vars.add(spec.var_name)
 
 
-def parse_dsl(text: str, sigil: str = "@") -> List[Step]:
-    """Parse DSL text into steps with raw commands and Step-2/Step-4 structured fields."""
+def _parse_steps(text: str, sigil: str = "@") -> List[Step]:
     if not isinstance(text, str):
         raise ParseError("DSL input must be a string")
     if not isinstance(sigil, str) or len(sigil) != 1:
@@ -380,6 +385,16 @@ def parse_dsl(text: str, sigil: str = "@") -> List[Step]:
     _finalize_step(builder, steps, sigil=sigil)
     _validate_from_symbols(steps, sigil=sigil)
     return steps
+
+
+def parse_program(text: str, sigil: str = "@") -> Program:
+    """Parse DSL text into a Program AST for v0.4+ execution."""
+    return Program(items=_parse_steps(text, sigil=sigil), sigil=sigil)
+
+
+def parse_dsl(text: str, sigil: str = "@") -> List[Step]:
+    """Backward-compatible flat parser view over the Program AST."""
+    return list(parse_program(text, sigil=sigil).items)
 
 
 def steps_to_dicts(steps: List[Step]) -> List[Dict[str, Any]]:
