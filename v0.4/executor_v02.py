@@ -339,6 +339,7 @@ def _execute_step_node(
     chat_lines: List[str],
     call_model: Optional[ModelCall],
     cheap_model_call: Optional[CheapModelCall],
+    node_path: List[int],
 ) -> None:
     sigil = step.sigil
     runtime_context = dict(context)
@@ -380,9 +381,13 @@ def _execute_step_node(
     logs.append(
         {
             "node_kind": "step",
+            "node_path": list(node_path),
+            "depth": len(node_path) - 1,
+            "execution": "executed",
             "step_index": step.index,
             "start_line_no": step.start_line_no,
             "text": step.text,
+            "output": parsed["out"],
             "prompt": prompt,
             "response_schema": response_schema,
             "raw_response": response,
@@ -401,8 +406,10 @@ def _execute_program_nodes(
     chat_lines: List[str],
     call_model: Optional[ModelCall],
     cheap_model_call: Optional[CheapModelCall],
+    path_prefix: List[int],
 ) -> None:
-    for item in items:
+    for child_index, item in enumerate(items):
+        node_path = [*path_prefix, child_index]
         if isinstance(item, Step):
             _execute_step_node(
                 item,
@@ -412,6 +419,7 @@ def _execute_program_nodes(
                 chat_lines,
                 call_model,
                 cheap_model_call,
+                node_path,
             )
             continue
 
@@ -429,10 +437,13 @@ def _execute_program_nodes(
         logs.append(
             {
                 "node_kind": "if",
+                "node_path": node_path,
+                "depth": len(node_path) - 1,
                 "start_line_no": item.start_line_no,
                 "condition_var": item.condition_var,
                 "condition_value": guard_value,
-                "execution": "executed" if guard_value else "skipped",
+                "execution": "entered" if guard_value else "skipped",
+                "child_count": len(item.items),
             }
         )
 
@@ -448,6 +459,7 @@ def _execute_program_nodes(
             chat_lines,
             call_model,
             cheap_model_call,
+            node_path,
         )
 
 
@@ -472,6 +484,7 @@ def execute_steps(
             chat_lines,
             call_model,
             cheap_model_call,
+            [st.index],
         )
 
     return context, logs, visible_outputs
@@ -497,6 +510,7 @@ def execute_program(
         chat_lines,
         call_model,
         cheap_model_call,
+        [],
     )
 
     return context, logs, visible_outputs

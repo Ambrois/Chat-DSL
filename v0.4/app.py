@@ -664,6 +664,42 @@ def _timeline_chat_lines(messages: list[dict]) -> list[str]:
     return lines
 
 
+def _format_trace_path(node_path: object) -> str:
+    if isinstance(node_path, list) and node_path:
+        return ".".join(str(part) for part in node_path)
+    return "-"
+
+
+def _trace_rows(logs: list[dict]) -> list[dict]:
+    rows: list[dict] = []
+    for log in logs:
+        if not isinstance(log, dict):
+            continue
+        kind = str(log.get("node_kind", ""))
+        if kind == "step":
+            rows.append(
+                {
+                    "Path": _format_trace_path(log.get("node_path")),
+                    "Kind": "step",
+                    "Status": log.get("execution", ""),
+                    "Line": log.get("start_line_no", ""),
+                    "Summary": log.get("text", ""),
+                }
+            )
+            continue
+        if kind == "if":
+            rows.append(
+                {
+                    "Path": _format_trace_path(log.get("node_path")),
+                    "Kind": "if",
+                    "Status": log.get("execution", ""),
+                    "Line": log.get("start_line_no", ""),
+                    "Summary": f"{log.get('condition_var')}={log.get('condition_value')}",
+                }
+            )
+    return rows
+
+
 def _run_dsl(
     input_text: str,
     use_gemini: bool,
@@ -1366,6 +1402,10 @@ with chat_slot:
                         elif meta and "execution_logs" in meta:
                             st.write("Parsed Program")
                             st.json(meta.get("parsed_steps"))
+                            st.write("Execution Trace")
+                            trace_rows = _trace_rows(meta.get("execution_logs", []))
+                            if trace_rows:
+                                st.table(trace_rows)
                             st.write("Execution Logs")
                             st.json(meta.get("execution_logs"))
                             st.write("Vars After")

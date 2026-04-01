@@ -43,7 +43,12 @@ def test_execute_program_runs_true_if_branch_without_leaking_branch_vars() -> No
     assert outputs == ["decided", "answer ready", "finished"]
     assert ctx == {"should_answer": True}
     assert logs[1]["node_kind"] == "if"
-    assert logs[1]["execution"] == "executed"
+    assert logs[1]["execution"] == "entered"
+    assert logs[1]["node_path"] == [1]
+    assert logs[2]["node_kind"] == "step"
+    assert logs[2]["node_path"] == [1, 0]
+    assert logs[2]["depth"] == 1
+    assert logs[2]["output"] == "answer ready"
 
 
 def test_execute_program_skips_false_if_branch_and_avoids_extra_model_calls() -> None:
@@ -77,6 +82,7 @@ def test_execute_program_skips_false_if_branch_and_avoids_extra_model_calls() ->
     assert ctx == {"should_answer": False}
     assert logs[1]["node_kind"] == "if"
     assert logs[1]["execution"] == "skipped"
+    assert logs[1]["child_count"] == 1
 
 
 def test_execute_program_keeps_outer_var_when_branch_redefines_it() -> None:
