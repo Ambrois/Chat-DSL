@@ -15,7 +15,7 @@ class ResponseSchema(TypedDict):
 
 ModelCall = Callable[[str, ResponseSchema], str]
 CheapModelCall = Callable[[str], str]
-_REF_PATTERN = re.compile(r"@([A-Za-z_][A-Za-z0-9_]*)")
+_REF_PATTERN = re.compile(r"(?<![A-Za-z0-9_])@([A-Za-z_][A-Za-z0-9_]*)\b")
 _BUILTIN_VAR_NAMES = {"ALL", "CHAT"}
 
 

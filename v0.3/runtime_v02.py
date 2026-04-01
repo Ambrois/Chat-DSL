@@ -46,7 +46,7 @@ def run_dsl_text(
             ok=False,
             outputs=[],
             logs=[],
-            vars_after=dict(context),
+            vars_after=dict(ctx),
             parsed_steps=steps_to_dicts(steps),
             error=f"Execution error: {exc}",
         )

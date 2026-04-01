@@ -43,3 +43,22 @@ def test_run_dsl_text_execution_error() -> None:
     assert res.error is not None
     assert "Execution error:" in res.error
     assert len(res.parsed_steps) == 1
+
+
+def test_run_dsl_text_preserves_prior_step_vars_after_later_failure() -> None:
+    responses = iter(
+        [
+            json.dumps({"error": 0, "out": "ok1", "vars": {"a": 1}}),
+            "not-json",
+        ]
+    )
+
+    res = run_dsl_text(
+        "One\n/DEF a /TYPE int\n/THEN Two\n/OUT done",
+        context={},
+        call_model=lambda *_: next(responses),
+    )
+
+    assert res.ok is False
+    assert res.vars_after == {"a": 1}
+    assert "Execution error:" in res.error

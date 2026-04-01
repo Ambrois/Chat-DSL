@@ -46,6 +46,21 @@ def test_prompt_without_from_defaults_to_chat_only() -> None:
     assert 'Example JSON shape:\n{"error": 0, "out": "done"}' in prompt
 
 
+def test_prompt_does_not_interpolate_email_like_text() -> None:
+    text = """Seed b
+/DEF b
+/THEN Send to a@b.com
+/FROM @b
+/OUT done
+"""
+    steps = parse_dsl(text)
+    prompt = build_step_prompt(steps[1], context={"b": "VALUE"})
+
+    assert "Send to a@b.com" in prompt
+    assert "Send to aVALUE.com" not in prompt
+    assert "Inputs:\n- b: VALUE" in prompt
+
+
 def test_execute_steps_uses_built_prompts() -> None:
     steps = parse_dsl("One\n/THEN Two")
     seen_calls: list[tuple[str, dict]] = []
