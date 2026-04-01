@@ -83,3 +83,25 @@ def test_run_dsl_text_supports_custom_sigil() -> None:
     assert res.outputs == ["ok1", "ok2"]
     assert res.vars_after == {"topic": "AI safety"}
     assert res.parsed_steps[1]["sigil"] == "#"
+
+
+def test_run_dsl_text_executes_if_block_without_leaking_branch_vars() -> None:
+    responses = iter(
+        [
+            json.dumps({"error": 0, "out": "decided", "vars": {"ok": True}}),
+            json.dumps({"error": 0, "out": "inside", "vars": {"temp": "branch only"}}),
+            json.dumps({"error": 0, "out": "after"}),
+        ]
+    )
+
+    res = run_dsl_text(
+        "Choose\n/DEF ok /TYPE bool\n/IF @ok\n/THEN Make temp\n/DEF temp\n/OUT inside\n/END\n/THEN Finish\n/OUT after",
+        context={},
+        call_model=lambda *_: next(responses),
+    )
+
+    assert res.ok is True
+    assert res.outputs == ["decided", "inside", "after"]
+    assert res.vars_after == {"ok": True}
+    assert res.parsed_steps[1]["node_kind"] == "if"
+    assert res.logs[1]["node_kind"] == "if"

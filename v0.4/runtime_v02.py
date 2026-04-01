@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
 
-from executor_v02 import ModelCall, execute_steps
-from parser_v02 import ParseError, steps_to_dicts, parse_dsl
+from executor_v02 import ModelCall, execute_program
+from parser_v02 import ParseError, parse_program, program_to_dicts
 
 
 @dataclass
@@ -28,7 +28,7 @@ def run_dsl_text(
     Returns structured success/error output without raising into the UI loop.
     """
     try:
-        steps = parse_dsl(text, sigil=sigil)
+        program = parse_program(text, sigil=sigil)
     except ParseError as exc:
         return RunResult(
             ok=False,
@@ -41,14 +41,14 @@ def run_dsl_text(
 
     ctx = dict(context)
     try:
-        ctx, logs, outputs = execute_steps(steps, context=ctx, call_model=call_model)
+        ctx, logs, outputs = execute_program(program, context=ctx, call_model=call_model)
     except Exception as exc:  # runtime/model errors are surfaced to UI
         return RunResult(
             ok=False,
             outputs=[],
             logs=[],
             vars_after=dict(ctx),
-            parsed_steps=steps_to_dicts(steps),
+            parsed_steps=program_to_dicts(program),
             error=f"Execution error: {exc}",
         )
 
@@ -57,6 +57,6 @@ def run_dsl_text(
         outputs=outputs,
         logs=logs,
         vars_after=ctx,
-        parsed_steps=steps_to_dicts(steps),
+        parsed_steps=program_to_dicts(program),
         error=None,
     )

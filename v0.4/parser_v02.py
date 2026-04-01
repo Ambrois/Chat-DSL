@@ -538,3 +538,60 @@ def steps_to_dicts(steps: List[Step]) -> List[Dict[str, Any]]:
         }
         for st in steps
     ]
+
+
+def nodes_to_dicts(items: List[ProgramNode]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    for item in items:
+        if isinstance(item, Step):
+            out.append(
+                {
+                    "node_kind": "step",
+                    "index": item.index,
+                    "start_line_no": item.start_line_no,
+                    "text": item.text,
+                    "sigil": item.sigil,
+                    "from_items": [
+                        {
+                            "kind": from_item.kind,
+                            "value": from_item.value,
+                            "scope_var": from_item.scope_var,
+                        }
+                        for from_item in (item.from_items or [])
+                    ],
+                    "defs": [
+                        {
+                            "var_name": spec.var_name,
+                            "value_type": spec.value_type,
+                            "as_text": spec.as_text,
+                            "line_no": spec.line_no,
+                        }
+                        for spec in item.defs
+                    ],
+                    "out_text": item.out_text,
+                    "commands": [
+                        {
+                            "name": cmd.name,
+                            "payload": cmd.payload,
+                            "line_no": cmd.line_no,
+                        }
+                        for cmd in item.commands
+                    ],
+                }
+            )
+            continue
+
+        out.append(
+            {
+                "node_kind": "if",
+                "start_line_no": item.start_line_no,
+                "condition_var": item.condition_var,
+                "sigil": item.sigil,
+                "items": nodes_to_dicts(item.items),
+            }
+        )
+    return out
+
+
+def program_to_dicts(program: Program) -> List[Dict[str, Any]]:
+    return nodes_to_dicts(program.items)

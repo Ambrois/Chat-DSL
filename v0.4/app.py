@@ -9,8 +9,8 @@ import math
 
 import streamlit as st
 
-from parser_v02 import ParseError, parse_dsl, steps_to_dicts
-from executor_v02 import execute_steps
+from parser_v02 import ParseError, parse_program, program_to_dicts
+from executor_v02 import execute_program
 from model_adapters_v02 import make_gemini_caller
 from gemini_client_v02 import call_gemini
 from state_store_v02 import load_chats, save_chats
@@ -525,7 +525,7 @@ if current_theme not in THEMES:
 _apply_theme(current_theme)
 st.markdown(SHARED_LAYOUT_CSS, unsafe_allow_html=True)
 
-st.title("Chat DSL v0.2")
+st.title("Chat DSL v0.4")
 
 st.session_state.setdefault("edit_target_chat_id", None)
 st.session_state.setdefault("edit_target_message_id", None)
@@ -679,7 +679,7 @@ def _run_dsl(
     if input_text.strip() == "":
         return
     try:
-        steps = parse_dsl(input_text, sigil=sigil)
+        program = parse_program(input_text, sigil=sigil)
     except ParseError as e:
         st.error(f"Parse error: {e}")
         st.stop()
@@ -715,8 +715,8 @@ def _run_dsl(
         if use_gemini:
             call_model = make_gemini_caller(model=model, timeout_s=timeout_s)
             cheap_model_call = make_gemini_caller(model=cheap_model, timeout_s=timeout_s)
-        ctx, logs, outputs = execute_steps(
-            steps,
+        ctx, logs, outputs = execute_program(
+            program,
             ctx,
             call_model=call_model,
             chat_history=chat_lines,
@@ -726,7 +726,7 @@ def _run_dsl(
         st.error(f"Execution error: {e}")
         st.stop()
 
-    steps_dicts = steps_to_dicts(steps)
+    steps_dicts = program_to_dicts(program)
 
     user_meta = {
         "thread_id": thread_id,
@@ -752,7 +752,7 @@ def _run_dsl(
             "meta": user_meta,
         }
     )
-    output_logs = logs
+    output_logs = [log for log in logs if log.get("node_kind") == "step"]
     if outputs:
         for idx, out in enumerate(outputs):
             step_log = output_logs[idx] if idx < len(output_logs) else None
@@ -1364,7 +1364,7 @@ with chat_slot:
                             st.write("Execution Log")
                             st.json(meta["step_log"])
                         elif meta and "execution_logs" in meta:
-                            st.write("Parsed Steps")
+                            st.write("Parsed Program")
                             st.json(meta.get("parsed_steps"))
                             st.write("Execution Logs")
                             st.json(meta.get("execution_logs"))
