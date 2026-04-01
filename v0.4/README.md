@@ -23,6 +23,7 @@ Primary docs:
 
 - `spec_changes_from_last.md`: v0.4 deltas from v0.3
 - `dsl_v0.4_specs.md`: v0.4 draft spec sheet
+- `interface_spec_v0.4.md`: current Streamlit UI behavior for the v0.4 app
 
 Implementation note:
 

@@ -1,4 +1,4 @@
-"""Run with: streamlit run v0.2/app.py"""
+"""Run with: streamlit run v0.4/app.py"""
 
 from __future__ import annotations
 
