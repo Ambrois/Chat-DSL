@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 
 class ParseError(ValueError):
@@ -37,8 +37,19 @@ class Step:
 
 
 @dataclass
+class IfNode:
+    start_line_no: int
+    condition_var: str
+    items: List["ProgramNode"] = field(default_factory=list)
+    sigil: str = "@"
+
+
+ProgramNode = Union[Step, IfNode]
+
+
+@dataclass
 class Program:
-    items: List["Step"] = field(default_factory=list)
+    items: List[ProgramNode] = field(default_factory=list)
     sigil: str = "@"
 
 
@@ -69,6 +80,14 @@ class _StepBuilder:
             commands=list(self.commands),
             sigil=sigil,
         )
+
+
+@dataclass
+class _BlockBuilder:
+    items: List[ProgramNode] = field(default_factory=list)
+    current_step: Optional[_StepBuilder] = None
+    if_start_line_no: Optional[int] = None
+    if_condition_var: Optional[str] = None
 
 
 _COMMAND_PATTERN = re.compile(r"^\s*/([A-Za-z][A-Za-z0-9_]*)\b(?:\s+(.*))?$")
@@ -120,6 +139,20 @@ def _validate_type_name(type_name: str, line_no: int) -> str:
 def _validate_var_name(var_name: str, line_no: int, source: str) -> str:
     if not _VAR_NAME_PATTERN.match(var_name):
         raise ParseError(f"Line {line_no}: invalid variable name {var_name!r} in {source}")
+    return var_name
+
+
+def _parse_if_payload(payload: str, line_no: int, sigil: str) -> str:
+    token = payload.strip()
+    if not token:
+        raise ParseError(f"Line {line_no}: /IF requires exactly one variable reference")
+    if not token.startswith(sigil):
+        raise ParseError(f"Line {line_no}: /IF requires exactly one variable reference")
+    var_name = token[len(sigil) :].strip()
+    if not _VAR_NAME_PATTERN.match(var_name):
+        raise ParseError(f"Line {line_no}: /IF requires exactly one variable reference")
+    if token != f"{sigil}{var_name}":
+        raise ParseError(f"Line {line_no}: /IF requires exactly one variable reference")
     return var_name
 
 
@@ -278,7 +311,7 @@ def _populate_step_fields(step: Step, sigil: str) -> None:
     step.out_text = "\n".join(out_lines) if out_lines else None
 
 
-def _finalize_step(builder: _StepBuilder, steps: List[Step], sigil: str) -> None:
+def _finalize_step(builder: _StepBuilder, items: List[ProgramNode], sigil: str) -> None:
     step = builder.build(sigil=sigil)
     if step is None:
         return
@@ -287,7 +320,7 @@ def _finalize_step(builder: _StepBuilder, steps: List[Step], sigil: str) -> None
             f"Step {step.index} (line {step.start_line_no}): instruction text is required before commands"
         )
     _populate_step_fields(step, sigil=sigil)
-    steps.append(step)
+    items.append(step)
 
 
 def _extract_var_refs(text: str, sigil: str) -> set[str]:
@@ -309,92 +342,172 @@ def _extract_step_embedded_refs(step: Step, sigil: str) -> set[str]:
     return refs
 
 
-def _validate_from_symbols(steps: List[Step], sigil: str) -> None:
-    known_vars: set[str] = set(_RESERVED_READONLY_VARS)
-    for step in steps:
-        embedded_refs = _extract_step_embedded_refs(step, sigil=sigil)
-        effective_from_items = step.from_items
-        if effective_from_items is None:
-            effective_from_items = [FromItem(kind="var", value="CHAT")]
+def _validate_step_from_symbols(step: Step, known_vars: set[str], sigil: str) -> None:
+    embedded_refs = _extract_step_embedded_refs(step, sigil=sigil)
+    effective_from_items = step.from_items
+    if effective_from_items is None:
+        effective_from_items = [FromItem(kind="var", value="CHAT")]
 
-        allowed: set[str] = set()
-        for item in effective_from_items:
-            if item.kind == "var":
-                name = item.value
-                if name not in known_vars:
-                    raise ParseError(
-                        f"Step {step.index} (line {step.start_line_no}): /FROM references undefined variable {sigil}{name}"
-                    )
-                allowed.add(name)
-            elif item.kind == "nat":
-                scope_name = item.scope_var or "ALL"
-                if scope_name not in known_vars:
-                    raise ParseError(
-                        f"Step {step.index} (line {step.start_line_no}): /FROM references undefined variable {sigil}{scope_name}"
-                    )
-
-        for name in sorted(embedded_refs):
-            if name not in allowed:
+    allowed: set[str] = set()
+    for item in effective_from_items:
+        if item.kind == "var":
+            name = item.value
+            if name not in known_vars:
                 raise ParseError(
-                    f"Step {step.index} (line {step.start_line_no}): reference {sigil}{name} is not allowed by /FROM"
+                    f"Step {step.index} (line {step.start_line_no}): /FROM references undefined variable {sigil}{name}"
                 )
-        for spec in step.defs:
-            known_vars.add(spec.var_name)
+            allowed.add(name)
+        elif item.kind == "nat":
+            scope_name = item.scope_var or "ALL"
+            if scope_name not in known_vars:
+                raise ParseError(
+                    f"Step {step.index} (line {step.start_line_no}): /FROM references undefined variable {sigil}{scope_name}"
+                )
+
+    for name in sorted(embedded_refs):
+        if name not in allowed:
+            raise ParseError(
+                f"Step {step.index} (line {step.start_line_no}): reference {sigil}{name} is not allowed by /FROM"
+            )
+    for spec in step.defs:
+        known_vars.add(spec.var_name)
 
 
-def _parse_steps(text: str, sigil: str = "@") -> List[Step]:
+def _validate_nodes(items: List[ProgramNode], known_vars: set[str], sigil: str) -> None:
+    for item in items:
+        if isinstance(item, Step):
+            _validate_step_from_symbols(item, known_vars, sigil=sigil)
+            continue
+
+        if item.condition_var not in known_vars:
+            raise ParseError(
+                f"Line {item.start_line_no}: /IF references undefined variable {sigil}{item.condition_var}"
+            )
+        branch_known_vars = set(known_vars)
+        _validate_nodes(item.items, branch_known_vars, sigil=sigil)
+
+
+def _validate_program(program: Program, sigil: str) -> None:
+    known_vars: set[str] = set(_RESERVED_READONLY_VARS)
+    _validate_nodes(program.items, known_vars, sigil=sigil)
+
+
+def _new_step_builder(index: int, line_no: int, payload: str = "") -> _StepBuilder:
+    builder = _StepBuilder(index=index, start_line_no=line_no)
+    if payload:
+        builder.text_lines.append(payload)
+    return builder
+
+
+def parse_program(text: str, sigil: str = "@") -> Program:
+    """Parse DSL text into a Program AST for v0.4+ execution."""
     if not isinstance(text, str):
         raise ParseError("DSL input must be a string")
     if not isinstance(sigil, str) or len(sigil) != 1:
         raise ParseError("sigil must be a single character")
 
     lines = text.splitlines()
-    builder = _StepBuilder(index=0, start_line_no=1)
-    steps: List[Step] = []
+    stack: List[_BlockBuilder] = [_BlockBuilder()]
+    next_step_index = 0
 
     for line_no, line in enumerate(lines, start=1):
+        frame = stack[-1]
         cmd = _parse_command_line(line)
         if cmd is not None:
             name, payload = cmd
             if name == "THEN":
-                _finalize_step(builder, steps, sigil=sigil)
-                builder = _StepBuilder(index=len(steps), start_line_no=line_no)
+                if frame.current_step is not None:
+                    _finalize_step(frame.current_step, frame.items, sigil=sigil)
+                frame.current_step = _new_step_builder(
+                    index=next_step_index, line_no=line_no, payload=payload
+                )
+                next_step_index += 1
+                continue
+
+            if name == "IF":
+                if frame.current_step is not None:
+                    _finalize_step(frame.current_step, frame.items, sigil=sigil)
+                    frame.current_step = None
+                condition_var = _parse_if_payload(payload, line_no=line_no, sigil=sigil)
+                stack.append(
+                    _BlockBuilder(if_start_line_no=line_no, if_condition_var=condition_var)
+                )
+                continue
+
+            if name == "END":
                 if payload:
-                    builder.text_lines.append(payload)
+                    raise ParseError(f"Line {line_no}: /END does not take a payload")
+                if frame.current_step is not None:
+                    _finalize_step(frame.current_step, frame.items, sigil=sigil)
+                    frame.current_step = None
+                if len(stack) == 1:
+                    raise ParseError(f"Line {line_no}: /END without matching /IF")
+                completed = stack.pop()
+                if not completed.items:
+                    raise ParseError(
+                        f"Line {completed.if_start_line_no}: /IF block must contain at least one node"
+                    )
+                assert completed.if_start_line_no is not None
+                assert completed.if_condition_var is not None
+                stack[-1].items.append(
+                    IfNode(
+                        start_line_no=completed.if_start_line_no,
+                        condition_var=completed.if_condition_var,
+                        items=list(completed.items),
+                        sigil=sigil,
+                    )
+                )
                 continue
 
             if name not in _KNOWN_COMMANDS:
                 raise ParseError(f"Line {line_no}: unknown command /{name}")
 
-            builder.commands.append(Command(name=name, payload=payload, line_no=line_no))
+            if frame.current_step is None:
+                frame.current_step = _new_step_builder(index=next_step_index, line_no=line_no)
+                next_step_index += 1
+            frame.current_step.commands.append(Command(name=name, payload=payload, line_no=line_no))
             continue
 
-        if builder.commands and _supports_multiline_continuation(builder.commands[-1]):
-            if builder.commands[-1].payload:
-                builder.commands[-1].payload += "\n" + line
+        if frame.current_step is None:
+            frame.current_step = _new_step_builder(index=next_step_index, line_no=line_no)
+            next_step_index += 1
+
+        if frame.current_step.commands and _supports_multiline_continuation(frame.current_step.commands[-1]):
+            if frame.current_step.commands[-1].payload:
+                frame.current_step.commands[-1].payload += "\n" + line
             else:
-                builder.commands[-1].payload = line
+                frame.current_step.commands[-1].payload = line
             continue
 
-        if builder.commands and line.strip():
+        if frame.current_step.commands and line.strip():
             raise ParseError(
                 f"Line {line_no}: instruction text must appear before commands within a step"
             )
-        builder.text_lines.append(line)
+        frame.current_step.text_lines.append(line)
 
-    _finalize_step(builder, steps, sigil=sigil)
-    _validate_from_symbols(steps, sigil=sigil)
-    return steps
+    if len(stack) > 1:
+        unclosed = stack[-1]
+        assert unclosed.if_start_line_no is not None
+        raise ParseError(f"Line {unclosed.if_start_line_no}: missing /END for /IF block")
 
+    root = stack[0]
+    if root.current_step is not None:
+        _finalize_step(root.current_step, root.items, sigil=sigil)
 
-def parse_program(text: str, sigil: str = "@") -> Program:
-    """Parse DSL text into a Program AST for v0.4+ execution."""
-    return Program(items=_parse_steps(text, sigil=sigil), sigil=sigil)
+    program = Program(items=root.items, sigil=sigil)
+    _validate_program(program, sigil=sigil)
+    return program
 
 
 def parse_dsl(text: str, sigil: str = "@") -> List[Step]:
     """Backward-compatible flat parser view over the Program AST."""
-    return list(parse_program(text, sigil=sigil).items)
+    program = parse_program(text, sigil=sigil)
+    flat_steps: List[Step] = []
+    for item in program.items:
+        if not isinstance(item, Step):
+            raise ParseError("parse_dsl only supports flat step programs; use parse_program")
+        flat_steps.append(item)
+    return flat_steps
 
 
 def steps_to_dicts(steps: List[Step]) -> List[Dict[str, Any]]:
