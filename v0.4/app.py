@@ -9,6 +9,7 @@ import uuid
 
 import streamlit as st
 
+from dsl_render_utils import dsl_to_highlighted_html, infer_message_sigil
 from parser_v02 import ParseError, parse_program, program_to_dicts
 from executor_v02 import execute_program
 from model_adapters_v02 import make_gemini_caller, make_gemini_cheap_caller
@@ -326,6 +327,29 @@ div[data-baseweb="modal"] {
   max-width: 960px;
   padding-top: 2rem;
 }
+
+.dsl-highlight-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dsl-highlight-text .dsl-kw {
+  color: var(--gb-yellow, #d79921);
+  font-weight: 700;
+}
+
+.dsl-highlight-text .dsl-var {
+  color: var(--gb-aqua, #689d6a);
+  font-weight: 650;
+}
+
+.dsl-input-preview {
+  margin-top: 0.35rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--gb-bg-3, #4b5563);
+  border-radius: 0.45rem;
+  background: var(--gb-bg-2, rgba(31, 41, 55, 0.35));
+}
 </style>
 """
 
@@ -627,6 +651,13 @@ def _open_copy_for_message(msg: dict, active_chat_id: str) -> None:
     st.session_state["copy_target_chat_id"] = active_chat_id
     st.session_state["copy_target_message_id"] = msg.get("id")
     st.session_state["copy_open"] = True
+
+
+def _render_dsl_text(text: object, sigil: str = "@", preview: bool = False) -> None:
+    css_class = "dsl-highlight-text dsl-input-preview" if preview else "dsl-highlight-text"
+    highlighted = dsl_to_highlighted_html(text, sigil=sigil)
+    st.markdown(f'<div class="{css_class}">{highlighted}</div>', unsafe_allow_html=True)
+
 
 def _format_var_preview(value: object, max_len: int = 140) -> str:
     if isinstance(value, str):
@@ -1087,6 +1118,11 @@ with st.sidebar:
                 "⤢", help="Fullscreen", use_container_width=True
             )
 
+    draft_preview_text = st.session_state.get("sidebar_draft", "")
+    if mode == "Use DSL" and isinstance(draft_preview_text, str) and draft_preview_text.strip():
+        st.caption("DSL syntax preview")
+        _render_dsl_text(draft_preview_text, sigil=dsl_sigil, preview=True)
+
     if staging_fullscreen:
         st.session_state["draft_fullscreen"] = True
         st.session_state["draft_dialog"] = st.session_state.get("sidebar_draft", "")
@@ -1132,6 +1168,11 @@ if dialog_available:
                 placeholder="Draft here (Ctrl+Enter to send)",
             )
             dialog_send = st.form_submit_button("Send", type="primary")
+
+        dialog_preview_text = st.session_state.get("draft_dialog", "")
+        if mode == "Use DSL" and isinstance(dialog_preview_text, str) and dialog_preview_text.strip():
+            st.caption("DSL syntax preview")
+            _render_dsl_text(dialog_preview_text, sigil=dsl_sigil, preview=True)
 
         dialog_cols = st.columns(2)
         with dialog_cols[0]:
@@ -1419,7 +1460,7 @@ with chat_slot:
                 if msg.get("mode") == "dsl":
                     cols = st.columns([0.9, 0.1])
                     with cols[0]:
-                        st.write(content)
+                        _render_dsl_text(content, sigil=infer_message_sigil(msg))
                     with cols[1]:
                         popover = getattr(st, "popover", None)
                         if popover:
