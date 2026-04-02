@@ -46,6 +46,17 @@ def test_prompt_without_from_defaults_to_chat_only() -> None:
     assert 'Example JSON shape:\n{"error": 0, "out": "done"}' in prompt
 
 
+def test_prompt_formats_multiline_as_with_indented_continuation_lines() -> None:
+    step = parse_dsl(
+        "Write update\n/FROM @topic\n/DEF summary /AS first line about @topic\nsecond line detail",
+        predeclared_vars={"topic"},
+    )[0]
+    prompt = build_step_prompt(step, context={"topic": "risk posture"})
+
+    assert "- summary (nat): first line about risk posture" in prompt
+    assert "\n  second line detail" in prompt
+
+
 def test_prompt_does_not_interpolate_email_like_text() -> None:
     text = """Seed b
 /DEF b

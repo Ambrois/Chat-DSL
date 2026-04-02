@@ -82,6 +82,15 @@ def _build_builtin_values(context: Dict[str, Any], chat_history: List[str]) -> D
     }
 
 
+def _format_required_var_line(var_name: str, type_name: str, description: str) -> str:
+    lines = (description or "").splitlines() or [""]
+    head = f"- {var_name} ({type_name}): {lines[0]}"
+    if len(lines) == 1:
+        return head
+    continuation = "\n".join(f"  {line}" for line in lines[1:])
+    return head + "\n" + continuation
+
+
 def build_step_prompt(
     step: Step,
     context: Dict[str, Any],
@@ -121,7 +130,9 @@ def build_step_prompt(
         required_lines: List[str] = []
         for spec in step.defs:
             desc = _interpolate(spec.as_text or spec.var_name, accessible, sigil)
-            required_lines.append(f"- {spec.var_name} ({spec.value_type}): {desc}")
+            required_lines.append(
+                _format_required_var_line(spec.var_name, spec.value_type, desc)
+            )
         blocks.append("Required variables:\n" + "\n".join(required_lines))
 
     if step.out_text is not None:
