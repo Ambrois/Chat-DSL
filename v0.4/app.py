@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import os
-import uuid
 import json
 import math
+import uuid
 
 import streamlit as st
 
 from parser_v02 import ParseError, parse_program, program_to_dicts
 from executor_v02 import execute_program
-from model_adapters_v02 import make_gemini_caller
+from model_adapters_v02 import make_gemini_caller, make_gemini_cheap_caller
 from gemini_client_v02 import call_gemini
 from state_store_v02 import load_chats, save_chats
 from versioning_v02 import (
@@ -714,11 +714,6 @@ def _run_dsl(
 ) -> None:
     if input_text.strip() == "":
         return
-    try:
-        program = parse_program(input_text, sigil=sigil)
-    except ParseError as e:
-        st.error(f"Parse error: {e}")
-        st.stop()
 
     user_message_id = new_message_id("msg")
     run_id = new_message_id("run")
@@ -741,6 +736,12 @@ def _run_dsl(
         if isinstance(src_vars_before, dict):
             vars_before = dict(src_vars_before)
 
+    try:
+        program = parse_program(input_text, sigil=sigil, predeclared_vars=vars_before.keys())
+    except ParseError as e:
+        st.error(f"Parse error: {e}")
+        st.stop()
+
     ctx = dict(vars_before)
     chat_lines = _timeline_chat_lines(chat_history)
     if input_text.strip():
@@ -750,7 +751,7 @@ def _run_dsl(
         cheap_model_call = None
         if use_gemini:
             call_model = make_gemini_caller(model=model, timeout_s=timeout_s)
-            cheap_model_call = make_gemini_caller(model=cheap_model, timeout_s=timeout_s)
+            cheap_model_call = make_gemini_cheap_caller(model=cheap_model, timeout_s=timeout_s)
         ctx, logs, outputs = execute_program(
             program,
             ctx,

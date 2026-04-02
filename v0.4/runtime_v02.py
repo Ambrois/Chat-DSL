@@ -28,7 +28,7 @@ def run_dsl_text(
     Returns structured success/error output without raising into the UI loop.
     """
     try:
-        program = parse_program(text, sigil=sigil)
+        program = parse_program(text, sigil=sigil, predeclared_vars=context.keys())
     except ParseError as exc:
         return RunResult(
             ok=False,

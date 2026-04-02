@@ -25,6 +25,12 @@ def test_from_accepts_previously_defined_variable() -> None:
     assert [it.value for it in (steps[1].from_items or []) if it.kind == "var"] == ["seed"]
 
 
+def test_from_accepts_predeclared_context_variable() -> None:
+    steps = parse_dsl("Use existing var\n/FROM @seed\n/OUT done", predeclared_vars={"seed"})
+    assert len(steps) == 1
+    assert [it.value for it in (steps[0].from_items or []) if it.kind == "var"] == ["seed"]
+
+
 @pytest.mark.parametrize(
     "dsl",
     [

@@ -39,3 +39,31 @@ def test_make_gemini_caller_forwards_model_and_timeout(monkeypatch) -> None:
         "timeout_s": 42,
         "response_schema": schema,
     }
+
+
+def test_make_gemini_cheap_caller_omits_response_schema(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_call_gemini(
+        prompt: str,
+        model: str,
+        timeout_s: float,
+        response_schema: dict | None = None,
+    ) -> str:
+        captured["prompt"] = prompt
+        captured["model"] = model
+        captured["timeout_s"] = timeout_s
+        captured["response_schema"] = response_schema
+        return "filtered text"
+
+    monkeypatch.setattr(model_adapters_v02, "call_gemini", fake_call_gemini)
+    caller = model_adapters_v02.make_gemini_cheap_caller("gemini-3-flash-preview", timeout_s=15)
+
+    out = caller("extract goals")
+    assert out == "filtered text"
+    assert captured == {
+        "prompt": "extract goals",
+        "model": "gemini-3-flash-preview",
+        "timeout_s": 15,
+        "response_schema": None,
+    }

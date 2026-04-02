@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 
 class ParseError(ValueError):
@@ -387,8 +387,25 @@ def _validate_nodes(items: List[ProgramNode], known_vars: set[str], sigil: str) 
         _validate_nodes(item.items, branch_known_vars, sigil=sigil)
 
 
-def _validate_program(program: Program, sigil: str) -> None:
+def _normalize_predeclared_vars(predeclared_vars: Optional[Iterable[str]]) -> set[str]:
+    if predeclared_vars is None:
+        return set()
+    out: set[str] = set()
+    for name in predeclared_vars:
+        if not isinstance(name, str):
+            continue
+        if _VAR_NAME_PATTERN.match(name):
+            out.add(name)
+    return out
+
+
+def _validate_program(
+    program: Program,
+    sigil: str,
+    predeclared_vars: Optional[Iterable[str]] = None,
+) -> None:
     known_vars: set[str] = set(_RESERVED_READONLY_VARS)
+    known_vars.update(_normalize_predeclared_vars(predeclared_vars))
     _validate_nodes(program.items, known_vars, sigil=sigil)
 
 
@@ -399,7 +416,11 @@ def _new_step_builder(index: int, line_no: int, payload: str = "") -> _StepBuild
     return builder
 
 
-def parse_program(text: str, sigil: str = "@") -> Program:
+def parse_program(
+    text: str,
+    sigil: str = "@",
+    predeclared_vars: Optional[Iterable[str]] = None,
+) -> Program:
     """Parse DSL text into a Program AST for v0.4+ execution."""
     if not isinstance(text, str):
         raise ParseError("DSL input must be a string")
@@ -495,13 +516,17 @@ def parse_program(text: str, sigil: str = "@") -> Program:
         _finalize_step(root.current_step, root.items, sigil=sigil)
 
     program = Program(items=root.items, sigil=sigil)
-    _validate_program(program, sigil=sigil)
+    _validate_program(program, sigil=sigil, predeclared_vars=predeclared_vars)
     return program
 
 
-def parse_dsl(text: str, sigil: str = "@") -> List[Step]:
+def parse_dsl(
+    text: str,
+    sigil: str = "@",
+    predeclared_vars: Optional[Iterable[str]] = None,
+) -> List[Step]:
     """Backward-compatible flat parser view over the Program AST."""
-    program = parse_program(text, sigil=sigil)
+    program = parse_program(text, sigil=sigil, predeclared_vars=predeclared_vars)
     flat_steps: List[Step] = []
     for item in program.items:
         if not isinstance(item, Step):

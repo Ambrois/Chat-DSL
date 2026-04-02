@@ -31,6 +31,17 @@ def test_from_accepts_mixed_variable_and_nat_items() -> None:
     assert step.from_items[2].scope_var == "notes"
 
 
+def test_from_in_accepts_predeclared_scope_variable() -> None:
+    steps = parse_dsl(
+        "Use scoped search\n/FROM key tasks /IN @notes\n/OUT done",
+        predeclared_vars={"notes"},
+    )
+    assert len(steps) == 1
+    assert steps[0].from_items is not None
+    assert steps[0].from_items[0].kind == "nat"
+    assert steps[0].from_items[0].scope_var == "notes"
+
+
 @pytest.mark.parametrize(
     "dsl, err",
     [

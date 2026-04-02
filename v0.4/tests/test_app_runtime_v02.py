@@ -85,6 +85,40 @@ def test_run_dsl_text_supports_custom_sigil() -> None:
     assert res.parsed_steps[1]["sigil"] == "#"
 
 
+def test_run_dsl_text_allows_from_existing_context_vars() -> None:
+    res = run_dsl_text(
+        "Use existing var\n/FROM @notes\n/OUT done",
+        context={"notes": "Task A"},
+        call_model=lambda *_: json.dumps({"error": 0, "out": "ok"}),
+    )
+
+    assert res.ok is True
+    assert res.error is None
+
+
+def test_run_dsl_text_allows_from_in_scope_from_existing_context_vars() -> None:
+    res = run_dsl_text(
+        "Extract focused notes\n/FROM key tasks /IN @notes\n/OUT done",
+        context={"notes": "Task A\nTask B"},
+        call_model=lambda *_: json.dumps({"error": 0, "out": "ok"}),
+    )
+
+    assert res.ok is True
+    assert res.error is None
+
+
+def test_run_dsl_text_allows_if_condition_from_existing_context_vars() -> None:
+    res = run_dsl_text(
+        "/IF @ok\n/THEN inside\n/OUT done\n/END",
+        context={"ok": False},
+        call_model=lambda *_: json.dumps({"error": 0, "out": "unused"}),
+    )
+
+    assert res.ok is True
+    assert res.outputs == []
+    assert res.vars_after == {"ok": False}
+
+
 def test_run_dsl_text_executes_if_block_without_leaking_branch_vars() -> None:
     responses = iter(
         [

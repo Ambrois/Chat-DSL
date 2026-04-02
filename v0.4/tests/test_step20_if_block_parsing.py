@@ -58,6 +58,17 @@ def test_parse_program_supports_nested_if_blocks() -> None:
     assert inner_if.condition_var == "inner"
 
 
+def test_parse_program_accepts_predeclared_if_condition_variable() -> None:
+    program = parse_program(
+        "/IF @ok\n/THEN inside\n/OUT done\n/END",
+        predeclared_vars={"ok"},
+    )
+
+    assert len(program.items) == 1
+    assert isinstance(program.items[0], IfNode)
+    assert program.items[0].condition_var == "ok"
+
+
 @pytest.mark.parametrize(
     "dsl, err",
     [
