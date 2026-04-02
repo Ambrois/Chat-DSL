@@ -10,6 +10,7 @@ if str(V02_DIR) not in sys.path:
 
 from versioning_v02 import (
     backfill_history_metadata,
+    build_edit_run_context,
     cutoff_index_for_version_view,
     find_message_index,
     get_assistant_messages_for_run,
@@ -211,3 +212,92 @@ def test_project_visible_history_uses_source_cutoff_for_hidden_edit_source() -> 
     ]
     projected = project_visible_history(history)
     assert [m["id"] for m in projected] == ["u1v1", "a1", "u2v2", "a2b"]
+
+
+def test_build_edit_run_context_uses_visible_prefix_before_source_version() -> None:
+    history = _sample_branching_history()
+
+    context = build_edit_run_context(history, "u2v1")
+
+    assert context.source_cutoff_index == find_message_index(history, "u2v2") - 1
+    assert [msg["id"] for msg in context.visible_history_before] == ["u1", "a1"]
+    assert context.vars_before == {}
+
+
+def test_build_edit_run_context_prefers_recorded_vars_before() -> None:
+    history = [
+        {
+            "id": "u1",
+            "role": "user",
+            "mode": "dsl",
+            "content": "seed",
+            "meta": {
+                "thread_id": "t1",
+                "version": 1,
+                "run_id": "r1",
+                "vars_after": {"seed": "alpha"},
+            },
+        },
+        {"id": "a1", "role": "assistant", "mode": "dsl", "content": "done", "meta": {"run_id": "r1"}},
+        {
+            "id": "u2",
+            "role": "user",
+            "mode": "dsl",
+            "content": "use seed",
+            "meta": {
+                "thread_id": "t2",
+                "version": 1,
+                "run_id": "r2",
+                "vars_before": {"seed": "recorded"},
+            },
+        },
+    ]
+
+    context = build_edit_run_context(history, "u2")
+
+    assert [msg["id"] for msg in context.visible_history_before] == ["u1", "a1"]
+    assert context.vars_before == {"seed": "recorded"}
+
+
+def test_build_edit_run_context_reconstructs_vars_from_prior_visible_timeline() -> None:
+    history = [
+        {
+            "id": "u1v1",
+            "role": "user",
+            "mode": "dsl",
+            "content": "set root",
+            "meta": {
+                "thread_id": "t1",
+                "version": 1,
+                "run_id": "r1",
+                "vars_after": {"root": "old"},
+            },
+        },
+        {"id": "a1", "role": "assistant", "mode": "dsl", "content": "done", "meta": {"run_id": "r1"}},
+        {
+            "id": "u2v1",
+            "role": "user",
+            "mode": "dsl",
+            "content": "branch child",
+            "meta": {"thread_id": "t2", "version": 1, "run_id": "r2"},
+        },
+        {"id": "a2", "role": "assistant", "mode": "dsl", "content": "child done", "meta": {"run_id": "r2"}},
+        {
+            "id": "u1v2",
+            "role": "user",
+            "mode": "dsl",
+            "content": "replace root",
+            "meta": {
+                "thread_id": "t1",
+                "version": 2,
+                "run_id": "r3",
+                "edited_from_message_id": "u1v1",
+            },
+        },
+        {"id": "a1b", "role": "assistant", "mode": "dsl", "content": "replaced", "meta": {"run_id": "r3"}},
+    ]
+
+    context = build_edit_run_context(history, "u2v1")
+
+    assert [msg["id"] for msg in context.visible_history_before] == ["u1v1", "a1"]
+    assert context.vars_before == {"root": "old"}

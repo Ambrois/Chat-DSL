@@ -1,11 +1,19 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import uuid
 from typing import Any, Dict, List, Optional
 
 
 def new_message_id(prefix: str = "msg") -> str:
     return f"{prefix}-{uuid.uuid4().hex[:12]}"
+
+
+@dataclass
+class EditRunContext:
+    source_cutoff_index: int
+    visible_history_before: List[Dict[str, Any]]
+    vars_before: Dict[str, Any]
 
 
 def _meta(msg: Dict[str, Any]) -> Dict[str, Any]:
@@ -213,3 +221,62 @@ def project_visible_history(
 ) -> List[Dict[str, Any]]:
     indices = project_visible_history_indices(history, cutoff_index=cutoff_index)
     return [history[idx] for idx in indices]
+
+
+def build_edit_run_context(
+    history: List[Dict[str, Any]], version_message_id: str | None
+) -> EditRunContext:
+    if not history:
+        return EditRunContext(
+            source_cutoff_index=-1,
+            visible_history_before=[],
+            vars_before={},
+        )
+
+    msg_idx = find_message_index(history, version_message_id)
+    if msg_idx is None:
+        return EditRunContext(
+            source_cutoff_index=len(history) - 1,
+            visible_history_before=project_visible_history(history),
+            vars_before={},
+        )
+
+    source_cutoff_index = cutoff_index_for_version_view(history, version_message_id)
+    projected_history = project_visible_history(history, cutoff_index=source_cutoff_index)
+
+    visible_history_before: List[Dict[str, Any]] = []
+    source_found = False
+    for msg in projected_history:
+        if msg.get("id") == version_message_id:
+            source_found = True
+            break
+        visible_history_before.append(msg)
+    if not source_found:
+        visible_history_before = projected_history
+
+    source_meta = history[msg_idx].get("meta", {})
+    vars_before = source_meta.get("vars_before")
+    if isinstance(vars_before, dict):
+        return EditRunContext(
+            source_cutoff_index=source_cutoff_index,
+            visible_history_before=visible_history_before,
+            vars_before=dict(vars_before),
+        )
+
+    for msg in reversed(visible_history_before):
+        if msg.get("role") != "user" or msg.get("mode") != "dsl":
+            continue
+        meta = msg.get("meta", {})
+        prev_vars_after = meta.get("vars_after")
+        if isinstance(prev_vars_after, dict):
+            return EditRunContext(
+                source_cutoff_index=source_cutoff_index,
+                visible_history_before=visible_history_before,
+                vars_before=dict(prev_vars_after),
+            )
+
+    return EditRunContext(
+        source_cutoff_index=source_cutoff_index,
+        visible_history_before=visible_history_before,
+        vars_before={},
+    )

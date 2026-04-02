@@ -17,6 +17,7 @@ from gemini_client_v02 import call_gemini
 from state_store_v02 import load_chats, save_chats
 from versioning_v02 import (
     backfill_history_metadata,
+    build_edit_run_context,
     cutoff_index_for_version_view,
     get_assistant_messages_for_run,
     get_thread_versions,
@@ -752,6 +753,8 @@ def _run_dsl(
     version = 1
     edited_from_id = None
     vars_before = dict(chat_vars)
+    execution_history = chat_history
+    source_cutoff_index = None
 
     edited_from_msg = _find_message_by_id(chat_history, edited_from_message_id)
     if (
@@ -763,9 +766,10 @@ def _run_dsl(
         thread_id = src_meta.get("thread_id") or edited_from_msg.get("id") or user_message_id
         version = next_version_for_thread(chat_history, thread_id)
         edited_from_id = edited_from_msg.get("id")
-        src_vars_before = src_meta.get("vars_before")
-        if isinstance(src_vars_before, dict):
-            vars_before = dict(src_vars_before)
+        edit_context = build_edit_run_context(chat_history, edited_from_id)
+        vars_before = dict(edit_context.vars_before)
+        execution_history = list(edit_context.visible_history_before)
+        source_cutoff_index = edit_context.source_cutoff_index
 
     try:
         program = parse_program(input_text, sigil=sigil, predeclared_vars=vars_before.keys())
@@ -774,7 +778,7 @@ def _run_dsl(
         st.stop()
 
     ctx = dict(vars_before)
-    chat_lines = _timeline_chat_lines(chat_history)
+    chat_lines = _timeline_chat_lines(execution_history)
     if input_text.strip():
         chat_lines.append(input_text)
     try:
@@ -807,8 +811,10 @@ def _run_dsl(
     }
     if edited_from_id:
         user_meta["edited_from_message_id"] = edited_from_id
-        user_meta["source_cutoff_index"] = cutoff_index_for_version_view(
-            chat_history, edited_from_id
+        user_meta["source_cutoff_index"] = (
+            cutoff_index_for_version_view(chat_history, edited_from_id)
+            if source_cutoff_index is None
+            else source_cutoff_index
         )
 
     chat_history.append(
