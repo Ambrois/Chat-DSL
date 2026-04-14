@@ -30,6 +30,10 @@ Implementation note:
 - code filenames still use the existing `*_v02.py` naming for continuity during the refactor
 - later commits may rename modules once the new architecture is stable
 
+Known issues:
+
+- see `known_issues.md` for currently tracked `v0.4` UI/runtime issues
+
 Run tests:
 
 ```bash

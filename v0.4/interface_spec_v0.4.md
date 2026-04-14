@@ -236,6 +236,8 @@ Displays a table with:
 
 Built-ins such as `ALL` and `CHAT` are hidden from this table.
 
+Open UI issues are tracked in `v0.4/known_issues.md`.
+
 ---
 
 ## 9. Stored Metadata
