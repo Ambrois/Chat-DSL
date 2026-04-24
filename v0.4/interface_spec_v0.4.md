@@ -2,8 +2,8 @@
 
 ## 1. Purpose
 
-This document specifies the current UI behavior of the `v0.4` Streamlit app
-at `v0.4/app.py`.
+This document specifies the current UI behavior of the active Streamlit app
+at `apps/streamlit/app.py`.
 
 It covers:
 - visual layout and controls
@@ -20,8 +20,9 @@ It does not redefine DSL syntax/runtime rules. See:
 ## 2. Runtime Context
 
 - Framework: Streamlit
-- Entry point: `streamlit run v0.4/app.py`
-- Primary persisted state file: `v0.4/state/chats.json`
+- Entry point: `streamlit run apps/streamlit/app.py`
+- Primary persisted state file: `apps/streamlit/state/chats.json`
+- Legacy state fallback: `v0.4/state/chats.json`
 - Optional environment variables:
   - `GEMINI_API_KEY`
   - `GEMINI_MODEL`

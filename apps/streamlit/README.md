@@ -10,5 +10,6 @@ This directory now contains:
 Phase 2 status:
 
 - moved here under issue `#9`
-- `v0.4/app.py` and `v0.4/dsl_render_utils.py` remain as temporary compatibility wrappers
+- active state now lives under `apps/streamlit/state/`
+- legacy state can still be read from `v0.4/state/` during the transition
 - the active tests now live under `tests/`

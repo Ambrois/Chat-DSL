@@ -4,7 +4,7 @@ Chat DSL is a versioned experimental repository for a chat-oriented domain-speci
 
 The active implementation line is in transition during Phase 2. Shared runtime code now lives in `chatdsl_core/`, the active Streamlit app now lives in `apps/streamlit/`, and the active tests now live in `tests/`.
 
-Historical snapshots now live under `archive/`, while `v0.4/` remains at the repo root only as a historical compatibility and state directory pending final cleanup.
+Historical snapshots now live under `archive/`, while `v0.4/` remains at the repo root only as historical reference material and a legacy state fallback location during the transition.
 
 Phase 2 migration status:
 
@@ -12,9 +12,10 @@ Phase 2 migration status:
 - the active app has moved to `apps/streamlit/`
 - the active tests have moved to `tests/`
 - `archive/v0.1/`, `archive/v0.2/`, and `archive/v0.3/` now hold the older snapshots
-- `v0.4/` is no longer an active implementation home; it remains only for compatibility wrappers, version-specific docs, and persisted state until final cleanup
+- `v0.4/` is no longer an active implementation home; compatibility wrappers have been removed
+- active state now writes under `apps/streamlit/state/` with legacy read fallback from `v0.4/state/`
 
-Until those follow-up issues land, `v0.4/` retains temporary compatibility wrappers and historical version-specific docs.
+`v0.4/` now remains only for historical version-specific docs and legacy state fallback.
 
 ## Setup
 
@@ -73,7 +74,7 @@ python -m pytest -q archive/v0.3/tests
 - `apps/streamlit/`: active Streamlit app
 - `chatdsl_core/`: active shared runtime code
 - `tests/`: active test suite
-- `v0.4/`: historical compatibility wrappers, version-specific docs, and persisted state during Phase 2
+- `v0.4/`: historical version-specific docs and legacy state fallback during the transition
 - `docs/`: project-level documentation
 - `archive/`: archived `v0.1/`, `v0.2/`, and `v0.3/` snapshots
 
