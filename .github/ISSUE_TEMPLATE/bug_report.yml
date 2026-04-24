@@ -60,7 +60,7 @@ body:
       description: How should this be tested or checked?
       placeholder: |
         Commands to run:
-        - python -m pytest -q v0.4/tests
+        - python -m pytest -q tests
 
         Manual checks:
         - Reproduce the original bug
