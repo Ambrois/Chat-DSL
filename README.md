@@ -4,6 +4,15 @@ Chat DSL is a versioned experimental repository for a chat-oriented domain-speci
 
 The active implementation line is `v0.4/`. Earlier `v0.x/` directories remain in the repository as historical snapshots.
 
+Phase 2 migration target:
+
+- active app code will move to `apps/streamlit/`
+- active core code will move to `chatdsl_core/`
+- active tests will move to `tests/`
+- historical snapshots will move to `archive/`
+
+Until that migration is complete, the active runtime still lives under `v0.4/`.
+
 ## Setup
 
 This repository is not packaged yet. The active app and tests run directly from the versioned source tree.
@@ -58,10 +67,10 @@ python -m pytest -q v0.3/tests
 
 ## Repository layout
 
-- `v0.4/`: active app, runtime, parser, executor, versioning, persistence, and tests
+- `v0.4/`: active app, runtime, parser, executor, versioning, persistence, and tests until Phase 2 finishes
 - `v0.1/`, `v0.2/`, `v0.3/`: historical version snapshots
 - `docs/`: project-level documentation
-- `apps/` and `python/chatdsl_core/`: reserved for a later structural cleanup; not yet the active runtime home
+- `apps/`, `chatdsl_core/`, `tests/`, `archive/`: agreed Phase 2 destination layout for the active app, active core, active tests, and historical snapshots
 
 ## Project docs
 

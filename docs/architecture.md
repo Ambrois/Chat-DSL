@@ -32,9 +32,43 @@ Each version directory is largely self-contained. This makes history easy to ins
 
 ### Transitional directories
 
-- `apps/`: reserved for future app-level organization; not yet the active home of the Streamlit app
-- `python/chatdsl_core/`: reserved for future shared core packaging; not yet the active home of the parser or executor
+- `apps/`: parent directory for the future active app location; `apps/streamlit/` is the agreed Phase 2 destination
+- `chatdsl_core/`: agreed Phase 2 destination for the active parser, executor, runtime, persistence, versioning, and model-integration code
+- `tests/`: agreed Phase 2 destination for the active unversioned test suite
+- `archive/`: agreed Phase 2 destination for historical version snapshots
 - `docs/`: project-level docs such as roadmap, architecture, and operating model
+
+## Phase 2 target layout
+
+The agreed target layout for the active system is:
+
+```text
+README.md
+AGENTS.md
+docs/
+apps/streamlit/
+chatdsl_core/
+tests/
+archive/
+```
+
+Meaning:
+
+- `apps/streamlit/` becomes the active home of the Streamlit UI
+- `chatdsl_core/` becomes the active home of shared Python runtime code
+- `tests/` becomes the active home of the unversioned test suite
+- `archive/` becomes the home of historical version snapshots, including `v0.4/` after the migration is complete
+
+## Phase 2 migration rules
+
+- Phase 2 is a repository-structure migration, not a product-feature phase.
+- Packaging work is out of scope for Phase 2.
+- `v0.4/` remains the active implementation line until the migration issues move the active code elsewhere.
+- Once the active code has moved, `v0.4/` becomes historical and should no longer be presented as the active system.
+- Major moves should stay separated by issue: layout scaffolding, core move, app move, test move, archive move, and final cleanup.
+- Compatibility shims, if introduced at all, must be minimal and short-lived.
+- Commands and docs should be updated as each migration step lands so the active path remains clear.
+- Active validation should continue to run after each major move.
 
 ## Major components
 
@@ -154,7 +188,7 @@ stored chat history
 
 ## Important invariants
 
-- `v0.4/` is the active implementation line. New product work should target it unless an issue explicitly says otherwise.
+- `v0.4/` is the active implementation line until the Phase 2 migration is complete. New product work should target it unless an issue explicitly says otherwise.
 - Historical version folders are snapshots, not peer active systems.
 - The parser is responsible for producing a valid program structure before execution begins.
 - `CHAT` and `ALL` are read-only built-in context variables and should not become ordinary mutable user vars.
@@ -178,6 +212,6 @@ stored chat history
 
 ## Transitional note
 
-The repository is intentionally not yet organized around a single packaged app/core layout. `apps/` and `python/chatdsl_core/` exist as likely targets for a later restructuring pass, but the active runtime still lives under `v0.4/`.
+The repository is intentionally not yet organized around the final active layout. The agreed destinations are `apps/streamlit/`, `chatdsl_core/`, `tests/`, and `archive/`, but the active runtime still lives under `v0.4/` until the Phase 2 migration issues land.
 
 That means contributors should optimize first for correctness, documentation, and clear issue-scoped changes within the current structure. Repository reorganization should happen only through explicit follow-up issues.
