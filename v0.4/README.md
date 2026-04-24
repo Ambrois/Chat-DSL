@@ -30,12 +30,12 @@ Implementation note:
 - code filenames still use the existing `*_v02.py` naming for continuity during the refactor
 - later commits may rename modules once the new architecture is stable
 
-Known issues:
+Open issues:
 
-- see `known_issues.md` for currently tracked `v0.4` UI/runtime issues
+- tracked in GitHub Issues: `https://github.com/Ambrois/Chat-DSL/issues`
 
 Run tests:
 
 ```bash
-PYTHONPATH=/data/data/com.termux/files/home/projects/Chat-DSL/.vendor python -m pytest -q v0.4/tests
+python -m pytest -q v0.4/tests
 ```
