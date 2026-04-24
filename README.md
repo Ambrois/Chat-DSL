@@ -2,20 +2,9 @@
 
 Chat DSL is a versioned experimental repository for a chat-oriented domain-specific language, its parser and executor, and a local Streamlit app for running DSL programs.
 
-The active implementation line is in transition during Phase 2. Shared runtime code now lives in `chatdsl_core/`, the active Streamlit app now lives in `apps/streamlit/`, and the active tests now live in `tests/`.
+The active application lives in `apps/streamlit/`, shared runtime code lives in `chatdsl_core/`, and the active test suite lives in `tests/`.
 
-Historical snapshots now live under `archive/`, while `v0.4/` remains at the repo root only as historical reference material and a legacy state fallback location during the transition.
-
-Phase 2 migration status:
-
-- active shared runtime code has moved to `chatdsl_core/`
-- the active app has moved to `apps/streamlit/`
-- the active tests have moved to `tests/`
-- `archive/v0.1/`, `archive/v0.2/`, and `archive/v0.3/` now hold the older snapshots
-- `v0.4/` is no longer an active implementation home; compatibility wrappers have been removed
-- active state now writes under `apps/streamlit/state/` with legacy read fallback from `v0.4/state/`
-
-`v0.4/` now remains only for historical version-specific docs and legacy state fallback.
+Historical snapshots live under `archive/`. `v0.4/` remains in the repository as historical version-specific reference material and a legacy state fallback location.
 
 ## Setup
 
