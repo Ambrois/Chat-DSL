@@ -19,7 +19,7 @@ The active system is temporarily split during Phase 2:
 - `tests/` is now the active home of the current test suite
 - `v0.4/` now contains temporary compatibility wrappers and version-specific docs until later migration issues land
 
-Earlier version folders remain in the repository as historical snapshots of the language and app as it evolved. They are useful for reference and regression comparison, but they are not the default target for new product work.
+Earlier version folders remain useful for reference and regression comparison, but they are no longer the default target for new product work.
 
 ## Repository layout
 
@@ -28,19 +28,21 @@ Earlier version folders remain in the repository as historical snapshots of the 
 - `apps/streamlit/`: active Streamlit app and app-specific helpers
 - `chatdsl_core/`: active parser, executor, runtime wrapper, model integration, persistence, and versioning code
 - `tests/`: active test suite
-- `v0.4/`: version docs and temporary compatibility module aliases during Phase 2
 
 ### Historical snapshots
 
-- `v0.1/`: frozen early baseline
-- `v0.2/`: intermediate version snapshot
-- `v0.3/`: stable predecessor to `v0.4`
+- `archive/v0.1/`: frozen early baseline
+- `archive/v0.2/`: intermediate version snapshot
+- `archive/v0.3/`: stable predecessor to `v0.4`
+
+### Historical compatibility shell
+
+- `v0.4/`: historical compatibility wrappers, version docs, and persisted state retained at the repo root until final cleanup
 
 Each version directory is largely self-contained. This makes history easy to inspect, but it also means the active architecture is still mixed with archival material.
 
 ### Transitional directories
 
-- `archive/`: scaffolded destination for future historical version snapshots
 - `docs/`: project-level docs such as roadmap, architecture, and operating model
 
 ## Phase 2 target layout
@@ -62,7 +64,7 @@ Meaning:
 - `apps/streamlit/` becomes the active home of the Streamlit UI
 - `chatdsl_core/` is the active home of shared Python runtime code
 - `tests/` is the active home of the unversioned test suite
-- `archive/` becomes the home of historical version snapshots, including `v0.4/` after the migration is complete
+- `archive/` is the home of historical version snapshots
 
 ## Phase 2 migration rules
 
@@ -71,8 +73,9 @@ Meaning:
 - `chatdsl_core/` is already the active home of shared runtime code.
 - `apps/streamlit/` is already the active home of the Streamlit app.
 - `tests/` is already the active home of the current test suite.
+- `archive/` already contains `v0.1/`, `v0.2/`, and `v0.3/`.
 - `v0.4/` remains the compatibility layer and version-doc home until the migration issues move or remove those pieces.
-- Once the active code has moved, `v0.4/` becomes historical and should no longer be presented as the active system.
+- `v0.4/` should no longer be presented as an active implementation home.
 - Major moves should stay separated by issue: layout scaffolding, core move, app move, test move, archive move, and final cleanup.
 - Compatibility shims, if introduced at all, must be minimal and short-lived.
 - Commands and docs should be updated as each migration step lands so the active path remains clear.
@@ -223,6 +226,6 @@ stored chat history
 
 ## Transitional note
 
-The repository is intentionally not yet organized around the final active layout. `apps/streamlit/`, `chatdsl_core/`, and `tests/` are already the active homes of the app, shared runtime, and test suite, while `archive/` remains the next scaffolded destination.
+The repository is intentionally not yet fully reduced to the final active layout. `apps/streamlit/`, `chatdsl_core/`, and `tests/` are already the active homes of the app, shared runtime, and test suite, while `archive/` now holds the older snapshots and `v0.4/` remains as the final historical compatibility shell still at the repo root.
 
 That means contributors should optimize first for correctness, documentation, and clear issue-scoped changes within the current structure. Repository reorganization should happen only through explicit follow-up issues.

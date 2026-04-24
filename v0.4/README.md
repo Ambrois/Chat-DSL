@@ -1,11 +1,12 @@
 # Chat DSL v0.4
 
-This folder is the `v0.4` compatibility and reference work area during Phase 2.
+This folder is the `v0.4` historical compatibility and reference work area during Phase 2.
 
 `v0.4` is the first block-structured control-flow release. During Phase 2, the active app and shared runtime modules have moved out to `apps/streamlit/` and `chatdsl_core/`, while `v0.4/` still contains:
 
 - temporary compatibility wrapper modules such as `app.py` and `dsl_render_utils.py`
 - version-specific documentation and reference material
+- persisted local state under `v0.4/state/`
 
 Current goals:
 

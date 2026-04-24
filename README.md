@@ -4,14 +4,15 @@ Chat DSL is a versioned experimental repository for a chat-oriented domain-speci
 
 The active implementation line is in transition during Phase 2. Shared runtime code now lives in `chatdsl_core/`, the active Streamlit app now lives in `apps/streamlit/`, and the active tests now live in `tests/`.
 
-Earlier `v0.x/` directories remain in the repository as historical snapshots.
+Historical snapshots now live under `archive/`, while `v0.4/` remains at the repo root only as a historical compatibility and state directory pending final cleanup.
 
 Phase 2 migration status:
 
 - active shared runtime code has moved to `chatdsl_core/`
 - the active app has moved to `apps/streamlit/`
 - the active tests have moved to `tests/`
-- historical snapshots will move to `archive/` under issue `#11`
+- `archive/v0.1/`, `archive/v0.2/`, and `archive/v0.3/` now hold the older snapshots
+- `v0.4/` is no longer an active implementation home; it remains only for compatibility wrappers, version-specific docs, and persisted state until final cleanup
 
 Until those follow-up issues land, `v0.4/` retains temporary compatibility wrappers and historical version-specific docs.
 
@@ -64,7 +65,7 @@ python -m pytest -q tests
 Run the previous stable line's tests when comparing behavior:
 
 ```bash
-python -m pytest -q v0.3/tests
+python -m pytest -q archive/v0.3/tests
 ```
 
 ## Repository layout
@@ -72,10 +73,9 @@ python -m pytest -q v0.3/tests
 - `apps/streamlit/`: active Streamlit app
 - `chatdsl_core/`: active shared runtime code
 - `tests/`: active test suite
-- `v0.4/`: version-specific docs and temporary compatibility wrappers during Phase 2
-- `v0.1/`, `v0.2/`, `v0.3/`: historical version snapshots
+- `v0.4/`: historical compatibility wrappers, version-specific docs, and persisted state during Phase 2
 - `docs/`: project-level documentation
-- `archive/`: scaffolded destination for historical snapshots
+- `archive/`: archived `v0.1/`, `v0.2/`, and `v0.3/` snapshots
 
 ## Project docs
 
