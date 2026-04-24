@@ -15,13 +15,13 @@ This folder contains the v0.3 specification, parser/executor implementation, and
 ## Run tests
 
 ```bash
-python -m pytest -q v0.3/tests
+python -m pytest -q archive/v0.3/tests
 ```
 
 ## Run app
 
 ```bash
-streamlit run v0.3/app.py
+streamlit run archive/v0.3/app.py
 ```
 
 App modes:
