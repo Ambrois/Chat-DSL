@@ -1,11 +1,14 @@
 # apps/streamlit
 
-Phase 2 placeholder for the future active Streamlit app location.
+Active Streamlit app for Chat DSL.
 
-Current active app path:
-- `v0.4/app.py`
+This directory now contains:
 
-Planned move:
-- the active Streamlit app will move here under issue `#9`
+- the active app entrypoint
+- app-specific helpers such as `dsl_render_utils.py`
 
-Do not treat this directory as the active app home until that issue lands.
+Phase 2 status:
+
+- moved here under issue `#9`
+- `v0.4/app.py` and `v0.4/dsl_render_utils.py` remain as temporary compatibility wrappers
+- the active tests still live under `v0.4/tests/` until issue `#10`

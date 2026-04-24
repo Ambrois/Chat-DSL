@@ -2,22 +2,22 @@
 
 Chat DSL is a versioned experimental repository for a chat-oriented domain-specific language, its parser and executor, and a local Streamlit app for running DSL programs.
 
-The active implementation line is in transition during Phase 2. Shared runtime code now lives in `chatdsl_core/`, while the active Streamlit app and active tests still run from `v0.4/`.
+The active implementation line is in transition during Phase 2. Shared runtime code now lives in `chatdsl_core/`, the active Streamlit app now lives in `apps/streamlit/`, and the active tests still run from `v0.4/tests/`.
 
 Earlier `v0.x/` directories remain in the repository as historical snapshots.
 
 Phase 2 migration status:
 
 - active shared runtime code has moved to `chatdsl_core/`
-- the active app will move to `apps/streamlit/` under issue `#9`
+- the active app has moved to `apps/streamlit/`
 - the active tests will move to `tests/` under issue `#10`
 - historical snapshots will move to `archive/` under issue `#11`
 
-Until those follow-up issues land, the active app and test entrypoints still live under `v0.4/`.
+Until those follow-up issues land, the active tests still live under `v0.4/tests/`, and `v0.4/` retains temporary compatibility wrappers.
 
 ## Setup
 
-This repository is not packaged yet. The active app and tests still run directly from the `v0.4/` tree, while shared runtime code lives in `chatdsl_core/`.
+This repository is not packaged yet. The active app runs from `apps/streamlit/`, the active tests still run from `v0.4/tests/`, and shared runtime code lives in `chatdsl_core/`.
 
 Recommended local setup:
 
@@ -43,7 +43,7 @@ export GEMINI_TIMEOUT=120
 Run the active app:
 
 ```bash
-streamlit run v0.4/app.py
+streamlit run apps/streamlit/app.py
 ```
 
 The `v0.4` app supports:
@@ -69,11 +69,11 @@ python -m pytest -q v0.3/tests
 
 ## Repository layout
 
+- `apps/streamlit/`: active Streamlit app
 - `chatdsl_core/`: active shared runtime code
-- `v0.4/`: active Streamlit app, app-specific helpers, active tests, version-specific docs, and temporary compatibility wrappers during Phase 2
+- `v0.4/`: active tests, version-specific docs, and temporary compatibility wrappers during Phase 2
 - `v0.1/`, `v0.2/`, `v0.3/`: historical version snapshots
 - `docs/`: project-level documentation
-- `apps/streamlit/`: scaffolded destination for the active app
 - `tests/`: scaffolded destination for the active test suite
 - `archive/`: scaffolded destination for historical snapshots
 
