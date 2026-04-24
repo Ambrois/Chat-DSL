@@ -1,9 +1,13 @@
 # Chat DSL v0.4
 
-This folder is the `v0.4` work area.
+This folder is the `v0.4` app and test work area during Phase 2.
 
-`v0.4` is the first block-structured control-flow release. The implementation is being
-built in small, testable commits on top of the stable `v0.3` snapshot.
+`v0.4` is the first block-structured control-flow release. During Phase 2, the active shared runtime modules have moved to `chatdsl_core/`, while `v0.4/` still contains:
+
+- the active Streamlit app entrypoint
+- app-specific helpers such as `dsl_render_utils.py`
+- the active `v0.4` test suite
+- temporary compatibility wrapper modules that preserve the old import paths until later cleanup issues land
 
 Current goals:
 
@@ -27,8 +31,9 @@ Primary docs:
 
 Implementation note:
 
-- code filenames still use the existing `*_v02.py` naming for continuity during the refactor
-- later commits may rename modules once the new architecture is stable
+- active shared runtime code now lives in `chatdsl_core/`
+- local `*_v02.py` compatibility modules in `v0.4/` are temporary Phase 2 shims
+- later commits will move the active app and tests out of `v0.4/` as well
 
 Open issues:
 

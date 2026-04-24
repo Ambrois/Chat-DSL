@@ -20,10 +20,12 @@ Substantial work must always map to a GitHub Issue.
 
 ## Repo guidance
 
-- `v0.4/` is the active implementation line and the default target for current product work.
+- `chatdsl_core/` is the active home for shared parser, executor, runtime, model-integration, persistence, and versioning code.
+- `v0.4/` remains the active app and test shell until later Phase 2 issues move those pieces elsewhere.
 - `v0.1/`, `v0.2/`, and `v0.3/` are historical version snapshots unless a GitHub Issue explicitly says otherwise.
+- Compatibility wrapper modules under `v0.4/` are temporary. Do not add new product logic to them unless the issue explicitly requires it.
 - Treat version-specific spec and README files as supporting documentation, not as replacements for the top-level `README.md`, roadmap, architecture docs, or GitHub Issues.
-- Follow existing patterns in the active version before introducing new abstractions or reorganizing code.
+- Follow existing patterns in the active path you are changing before introducing new abstractions or reorganizing code.
 
 ## Scope control
 

@@ -2,20 +2,22 @@
 
 Chat DSL is a versioned experimental repository for a chat-oriented domain-specific language, its parser and executor, and a local Streamlit app for running DSL programs.
 
-The active implementation line is `v0.4/`. Earlier `v0.x/` directories remain in the repository as historical snapshots.
+The active implementation line is in transition during Phase 2. Shared runtime code now lives in `chatdsl_core/`, while the active Streamlit app and active tests still run from `v0.4/`.
 
-Phase 2 migration target:
+Earlier `v0.x/` directories remain in the repository as historical snapshots.
 
-- active app code will move to `apps/streamlit/`
-- active core code will move to `chatdsl_core/`
-- active tests will move to `tests/`
-- historical snapshots will move to `archive/`
+Phase 2 migration status:
 
-Until that migration is complete, the active runtime still lives under `v0.4/`.
+- active shared runtime code has moved to `chatdsl_core/`
+- the active app will move to `apps/streamlit/` under issue `#9`
+- the active tests will move to `tests/` under issue `#10`
+- historical snapshots will move to `archive/` under issue `#11`
+
+Until those follow-up issues land, the active app and test entrypoints still live under `v0.4/`.
 
 ## Setup
 
-This repository is not packaged yet. The active app and tests run directly from the versioned source tree.
+This repository is not packaged yet. The active app and tests still run directly from the `v0.4/` tree, while shared runtime code lives in `chatdsl_core/`.
 
 Recommended local setup:
 
@@ -67,10 +69,13 @@ python -m pytest -q v0.3/tests
 
 ## Repository layout
 
-- `v0.4/`: active app, runtime, parser, executor, versioning, persistence, and tests until Phase 2 finishes
+- `chatdsl_core/`: active shared runtime code
+- `v0.4/`: active Streamlit app, app-specific helpers, active tests, version-specific docs, and temporary compatibility wrappers during Phase 2
 - `v0.1/`, `v0.2/`, `v0.3/`: historical version snapshots
 - `docs/`: project-level documentation
-- `apps/`, `chatdsl_core/`, `tests/`, `archive/`: agreed Phase 2 destination layout for the active app, active core, active tests, and historical snapshots
+- `apps/streamlit/`: scaffolded destination for the active app
+- `tests/`: scaffolded destination for the active test suite
+- `archive/`: scaffolded destination for historical snapshots
 
 ## Project docs
 
