@@ -1,0 +1,69 @@
+name: Bug report
+description: Capture a bug with clear scope, acceptance criteria, and validation.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for bugs, regressions, and incorrect behavior.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should be true when this issue is done?
+      placeholder: Describe the expected fixed behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: current_behavior
+    attributes:
+      label: Current behavior
+      description: What is happening now?
+      placeholder: Describe the bug or regression clearly.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is included in this issue?
+      placeholder: |
+        - Fix the parsing error for nested IF blocks
+        - Add regression tests
+    validations:
+      required: true
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: What should not change as part of this issue?
+      placeholder: |
+        - No UI redesign
+        - No package reorganization
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance criteria
+      description: List the observable requirements for completion.
+      placeholder: |
+        - [ ] The bug no longer reproduces under the documented scenario
+        - [ ] A regression test covers the failure
+        - [ ] Error handling remains clear
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: How should this be tested or checked?
+      placeholder: |
+        Commands to run:
+        - python -m pytest -q v0.4/tests
+
+        Manual checks:
+        - Reproduce the original bug
+        - Confirm the fix in the app
+    validations:
+      required: true
