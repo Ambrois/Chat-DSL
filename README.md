@@ -63,7 +63,7 @@ python -m pytest -q archive/v0.3/tests
 - `apps/streamlit/`: active Streamlit app
 - `chatdsl_core/`: active shared runtime code
 - `tests/`: active test suite
-- `v0.4/`: historical version-specific docs and legacy state fallback during the transition
+- `v0.4/`: historical version-specific docs and legacy state fallback
 - `docs/`: project-level documentation
 - `archive/`: archived `v0.1/`, `v0.2/`, and `v0.3/` snapshots
 
