@@ -1,6 +1,73 @@
 # Chat DSL
 
-- `v0.1/`: frozen v0.1 implementation snapshot
-- `v0.2/`: v0.2 design and implementation-in-progress
+Chat DSL is a versioned experimental repository for a chat-oriented domain-specific language, its parser and executor, and a local Streamlit app for running DSL programs.
 
-Start with `v0.2/spec_v0.2.md` for the formal v0.2 specification.
+The active implementation line is `v0.4/`. Earlier `v0.x/` directories remain in the repository as historical snapshots.
+
+## Setup
+
+This repository is not packaged yet. The active app and tests run directly from the versioned source tree.
+
+Recommended local setup:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install streamlit pytest
+```
+
+Optional environment variables for Gemini-backed execution:
+
+```bash
+export GEMINI_API_KEY=...
+export GEMINI_MODEL=gemini-2.5-flash
+export GEMINI_CHEAP_MODEL=gemini-3-flash-preview
+export GEMINI_TIMEOUT=120
+```
+
+`GEMINI_API_KEY` is only required when running live Gemini calls. The app can still be used in stub mode without it.
+
+## Usage
+
+Run the active app:
+
+```bash
+streamlit run v0.4/app.py
+```
+
+The `v0.4` app supports:
+
+- DSL execution through the `v0.4` parser and executor
+- local chat persistence
+- versioned edits for DSL messages
+- stub execution and Gemini-backed execution modes
+
+## Common commands
+
+Run the active test suite:
+
+```bash
+python -m pytest -q v0.4/tests
+```
+
+Run the previous stable line's tests when comparing behavior:
+
+```bash
+python -m pytest -q v0.3/tests
+```
+
+## Repository layout
+
+- `v0.4/`: active app, runtime, parser, executor, versioning, persistence, and tests
+- `v0.1/`, `v0.2/`, `v0.3/`: historical version snapshots
+- `docs/`: project-level documentation
+- `apps/` and `python/chatdsl_core/`: reserved for a later structural cleanup; not yet the active runtime home
+
+## Project docs
+
+- Roadmap: `docs/roadmap.md`
+- Architecture: `docs/architecture.md`
+- Agent and contributor workflow: `AGENTS.md`
+- GitHub Issues: `https://github.com/Ambrois/Chat-DSL/issues`
+
+Use GitHub Issues for substantial work. Repo-local notes are not the durable work queue.
