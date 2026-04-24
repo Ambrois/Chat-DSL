@@ -2,7 +2,7 @@
 
 This document explains how Chat DSL is organized today.
 
-It describes the current repository structure, the active runtime path, and the boundaries that should not be changed casually while the repository is still in its versioned-layout phase.
+It describes the current repository structure, the active runtime path, and the boundaries that should not be changed casually.
 
 ## System overview
 
@@ -12,12 +12,13 @@ Chat DSL is a local, versioned DSL experimentation repository centered on a Stre
 DSL text -> parser -> program AST -> executor -> model adapter/client -> outputs and vars -> persisted chat state -> Streamlit UI
 ```
 
-The active system is temporarily split during Phase 2:
+The active system is organized around:
 
-- `apps/streamlit/` is now the active home of the Streamlit app
-- `chatdsl_core/` is now the active home of shared runtime code
-- `tests/` is now the active home of the current test suite
-- `v0.4/` now contains historical version-specific docs and a legacy state fallback location
+- `apps/streamlit/` as the active home of the Streamlit app
+- `chatdsl_core/` as the active home of shared runtime code
+- `tests/` as the active home of the current test suite
+- `archive/` as the home of historical version snapshots
+- `v0.4/` as historical version-specific docs and a legacy state fallback location
 
 Earlier version folders remain useful for reference and regression comparison, but they are no longer the default target for new product work.
 
@@ -35,52 +36,15 @@ Earlier version folders remain useful for reference and regression comparison, b
 - `archive/v0.2/`: intermediate version snapshot
 - `archive/v0.3/`: stable predecessor to `v0.4`
 
-### Historical compatibility shell
+### Historical reference material
 
-- `v0.4/`: historical version docs and legacy state retained at the repo root during the transition
+- `v0.4/`: historical version docs and legacy state retained at the repo root
 
-Each version directory is largely self-contained. This makes history easy to inspect, but it also means the active architecture is still mixed with archival material.
+Each archived version directory is largely self-contained. This makes history easy to inspect without treating archived code as part of the active implementation.
 
-### Transitional directories
+### Project docs
 
 - `docs/`: project-level docs such as roadmap, architecture, and operating model
-
-## Phase 2 target layout
-
-The agreed target layout for the active system is:
-
-```text
-README.md
-AGENTS.md
-docs/
-apps/streamlit/
-chatdsl_core/
-tests/
-archive/
-```
-
-Meaning:
-
-- `apps/streamlit/` becomes the active home of the Streamlit UI
-- `chatdsl_core/` is the active home of shared Python runtime code
-- `tests/` is the active home of the unversioned test suite
-- `archive/` is the home of historical version snapshots
-
-## Phase 2 migration rules
-
-- Phase 2 is a repository-structure migration, not a product-feature phase.
-- Packaging work is out of scope for Phase 2.
-- `chatdsl_core/` is already the active home of shared runtime code.
-- `apps/streamlit/` is already the active home of the Streamlit app.
-- `tests/` is already the active home of the current test suite.
-- `archive/` already contains `v0.1/`, `v0.2/`, and `v0.3/`.
-- active state now lives under `apps/streamlit/state/` with legacy read fallback from `v0.4/state/`.
-- `v0.4/` remains only as historical reference material and legacy state fallback.
-- `v0.4/` should no longer be presented as an active implementation home.
-- Major moves should stay separated by issue: layout scaffolding, core move, app move, test move, archive move, and final cleanup.
-- Compatibility shims, if introduced at all, must be minimal and short-lived.
-- Commands and docs should be updated as each migration step lands so the active path remains clear.
-- Active validation should continue to run after each major move.
 
 ## Major components
 
@@ -204,7 +168,7 @@ stored chat history
 
 ## Important invariants
 
-- The active system is temporarily split during Phase 2: app in `apps/streamlit/`, shared runtime code in `chatdsl_core/`, active tests in `tests/`, and historical version material still in `v0.4/`.
+- The active system lives in `apps/streamlit/`, `chatdsl_core/`, and `tests/`, while historical version material lives in `archive/` and `v0.4/`.
 - Historical version folders are snapshots, not peer active systems.
 - The parser is responsible for producing a valid program structure before execution begins.
 - `CHAT` and `ALL` are read-only built-in context variables and should not become ordinary mutable user vars.
@@ -226,8 +190,6 @@ stored chat history
 - The parser-to-executor contract, especially the `Program` and node structures used by `chatdsl_core`
 - The persisted JSON shape and fallback behavior used by `chatdsl_core/state_store_v02.py`
 
-## Transitional note
+## Contribution note
 
-The repository is intentionally not yet fully reduced to the final active layout. `apps/streamlit/`, `chatdsl_core/`, and `tests/` are already the active homes of the app, shared runtime, and test suite, while `archive/` now holds the older snapshots and `v0.4/` remains as historical reference material plus legacy state fallback.
-
-That means contributors should optimize first for correctness, documentation, and clear issue-scoped changes within the current structure. Repository reorganization should happen only through explicit follow-up issues.
+Contributors should optimize first for correctness, documentation, and clear issue-scoped changes within the current structure. Repository reorganization should happen only through explicit follow-up issues.
