@@ -1,19 +1,19 @@
 # Chat DSL v0.4
 
-This folder is the `v0.4` historical reference work area during Phase 2.
+This folder is the `v0.4` historical reference work area.
 
-`v0.4` is the first block-structured control-flow release. During Phase 2, the active app and shared runtime modules have moved out to `apps/streamlit/` and `chatdsl_core/`, while `v0.4/` still contains:
+`v0.4` is the first block-structured control-flow release. The active app and shared runtime modules now live in `apps/streamlit/` and `chatdsl_core/`, while `v0.4/` contains:
 
 - version-specific documentation and reference material
-- legacy local state under `v0.4/state/` that can still be read during the transition
+- legacy local state under `v0.4/state/` that can still be read as fallback
 
-Current goals:
+Historical focus:
 
-- introduce a real AST instead of a flat `List[Step]`
-- support `/IF <sigil>bool_var ... /END`
-- allow nested `/IF` blocks
-- execute the program recursively rather than as a flat loop
-- record execution traces for entered, skipped, and executed nodes
+- introduced a real AST instead of a flat `List[Step]`
+- added `/IF <sigil>bool_var ... /END`
+- allowed nested `/IF` blocks
+- executed the program recursively rather than as a flat loop
+- recorded execution traces for entered, skipped, and executed nodes
 
 Important semantic choice for `v0.4`:
 
@@ -33,7 +33,6 @@ Implementation note:
 - active shared runtime code now lives in `chatdsl_core/`
 - the active tests now live in `tests/`
 - temporary compatibility modules have been removed
-- later commits may remove the legacy `v0.4/state/` fallback once migration concerns are settled
 
 Open issues:
 
