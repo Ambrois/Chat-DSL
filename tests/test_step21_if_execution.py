@@ -1,17 +1,9 @@
 from __future__ import annotations
 
 import json
-import sys
-from pathlib import Path
 
-
-V04_DIR = Path(__file__).resolve().parents[1]
-if str(V04_DIR) not in sys.path:
-    sys.path.insert(0, str(V04_DIR))
-
-from executor_v02 import execute_program
-from parser_v02 import parse_program
-
+from chatdsl_core.executor_v02 import execute_program
+from chatdsl_core.parser_v02 import parse_program
 
 def test_execute_program_runs_true_if_branch_without_leaking_branch_vars() -> None:
     program = parse_program(
@@ -50,7 +42,6 @@ def test_execute_program_runs_true_if_branch_without_leaking_branch_vars() -> No
     assert logs[2]["depth"] == 1
     assert logs[2]["output"] == "answer ready"
 
-
 def test_execute_program_skips_false_if_branch_and_avoids_extra_model_calls() -> None:
     program = parse_program(
         """Choose path
@@ -83,7 +74,6 @@ def test_execute_program_skips_false_if_branch_and_avoids_extra_model_calls() ->
     assert logs[1]["node_kind"] == "if"
     assert logs[1]["execution"] == "skipped"
     assert logs[1]["child_count"] == 1
-
 
 def test_execute_program_keeps_outer_var_when_branch_redefines_it() -> None:
     program = parse_program(

@@ -1,19 +1,11 @@
 from __future__ import annotations
 
 import json
-import sys
-from pathlib import Path
 
 import pytest
 
-
-V03_DIR = Path(__file__).resolve().parents[1]
-if str(V03_DIR) not in sys.path:
-    sys.path.insert(0, str(V03_DIR))
-
-from executor_v02 import execute_steps
-from parser_v02 import parse_dsl
-
+from chatdsl_core.executor_v02 import execute_steps
+from chatdsl_core.parser_v02 import parse_dsl
 
 def test_nat_from_items_use_independent_prefilter_calls() -> None:
     dsl = """Seed notes
@@ -59,7 +51,6 @@ def test_nat_from_items_use_independent_prefilter_calls() -> None:
     assert "Inputs:\n- key tasks (from @notes): TASKS ONLY" in main_prompts[1]
     assert "- user goals (from @ALL): GOALS ONLY" in main_prompts[1]
 
-
 def test_prefilter_failure_stops_execution() -> None:
     steps = parse_dsl("Seed\n/DEF notes\n/THEN Use\n/FROM x /IN @notes\n/OUT done")
 
@@ -73,7 +64,6 @@ def test_prefilter_failure_stops_execution() -> None:
 
     with pytest.raises(RuntimeError, match="cheap failed"):
         execute_steps(steps, context={}, call_model=fake_main, cheap_model_call=broken_cheap)
-
 
 def test_nat_prefilter_uses_custom_sigil_in_prompts_and_labels() -> None:
     dsl = """Seed notes

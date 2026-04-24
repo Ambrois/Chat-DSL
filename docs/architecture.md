@@ -16,7 +16,8 @@ The active system is temporarily split during Phase 2:
 
 - `apps/streamlit/` is now the active home of the Streamlit app
 - `chatdsl_core/` is now the active home of shared runtime code
-- `v0.4/` still contains the active tests and temporary compatibility wrappers until later migration issues land
+- `tests/` is now the active home of the current test suite
+- `v0.4/` now contains temporary compatibility wrappers and version-specific docs until later migration issues land
 
 Earlier version folders remain in the repository as historical snapshots of the language and app as it evolved. They are useful for reference and regression comparison, but they are not the default target for new product work.
 
@@ -26,7 +27,8 @@ Earlier version folders remain in the repository as historical snapshots of the 
 
 - `apps/streamlit/`: active Streamlit app and app-specific helpers
 - `chatdsl_core/`: active parser, executor, runtime wrapper, model integration, persistence, and versioning code
-- `v0.4/`: active tests, version docs, and temporary compatibility module aliases during Phase 2
+- `tests/`: active test suite
+- `v0.4/`: version docs and temporary compatibility module aliases during Phase 2
 
 ### Historical snapshots
 
@@ -38,7 +40,6 @@ Each version directory is largely self-contained. This makes history easy to ins
 
 ### Transitional directories
 
-- `tests/`: scaffolded destination for the future active unversioned test suite
 - `archive/`: scaffolded destination for future historical version snapshots
 - `docs/`: project-level docs such as roadmap, architecture, and operating model
 
@@ -60,7 +61,7 @@ Meaning:
 
 - `apps/streamlit/` becomes the active home of the Streamlit UI
 - `chatdsl_core/` is the active home of shared Python runtime code
-- `tests/` becomes the active home of the unversioned test suite
+- `tests/` is the active home of the unversioned test suite
 - `archive/` becomes the home of historical version snapshots, including `v0.4/` after the migration is complete
 
 ## Phase 2 migration rules
@@ -69,7 +70,8 @@ Meaning:
 - Packaging work is out of scope for Phase 2.
 - `chatdsl_core/` is already the active home of shared runtime code.
 - `apps/streamlit/` is already the active home of the Streamlit app.
-- `v0.4/` remains the active test shell and compatibility layer until the migration issues move or remove those pieces.
+- `tests/` is already the active home of the current test suite.
+- `v0.4/` remains the compatibility layer and version-doc home until the migration issues move or remove those pieces.
 - Once the active code has moved, `v0.4/` becomes historical and should no longer be presented as the active system.
 - Major moves should stay separated by issue: layout scaffolding, core move, app move, test move, archive move, and final cleanup.
 - Compatibility shims, if introduced at all, must be minimal and short-lived.
@@ -161,7 +163,7 @@ Responsibilities:
 ### Tests
 
 Key directory:
-- `v0.4/tests/` for now; `tests/` is the planned destination under a later Phase 2 issue
+- `tests/`
 
 Responsibilities:
 - cover parser behavior
@@ -197,7 +199,7 @@ stored chat history
 
 ## Important invariants
 
-- The active system is temporarily split during Phase 2: app in `apps/streamlit/`, shared runtime code in `chatdsl_core/`, active tests and compatibility wrappers still in `v0.4/`.
+- The active system is temporarily split during Phase 2: app in `apps/streamlit/`, shared runtime code in `chatdsl_core/`, active tests in `tests/`, and compatibility wrappers still in `v0.4/`.
 - Historical version folders are snapshots, not peer active systems.
 - The parser is responsible for producing a valid program structure before execution begins.
 - `CHAT` and `ALL` are read-only built-in context variables and should not become ordinary mutable user vars.
@@ -221,6 +223,6 @@ stored chat history
 
 ## Transitional note
 
-The repository is intentionally not yet organized around the final active layout. `apps/streamlit/` and `chatdsl_core/` are already the active homes of the app and shared runtime, while `tests/` and `archive/` remain scaffolded destinations for later Phase 2 issues.
+The repository is intentionally not yet organized around the final active layout. `apps/streamlit/`, `chatdsl_core/`, and `tests/` are already the active homes of the app, shared runtime, and test suite, while `archive/` remains the next scaffolded destination.
 
 That means contributors should optimize first for correctness, documentation, and clear issue-scoped changes within the current structure. Repository reorganization should happen only through explicit follow-up issues.

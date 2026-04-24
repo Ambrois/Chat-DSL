@@ -1,19 +1,11 @@
 from __future__ import annotations
 
 import json
-import sys
-from pathlib import Path
 
 import pytest
 
-
-V02_DIR = Path(__file__).resolve().parents[1]
-if str(V02_DIR) not in sys.path:
-    sys.path.insert(0, str(V02_DIR))
-
-from executor_v02 import execute_steps
-from parser_v02 import parse_dsl
-
+from chatdsl_core.executor_v02 import execute_steps
+from chatdsl_core.parser_v02 import parse_dsl
 
 def test_end_to_end_successful_multistep_flow() -> None:
     dsl = """Choose topic
@@ -50,7 +42,6 @@ def test_end_to_end_successful_multistep_flow() -> None:
     assert len(prompts) == 2
     assert "Draft summary for AI safety" in prompts[1]
     assert "- summary (str): concise summary of AI safety" in prompts[1]
-
 
 def test_end_to_end_stops_after_runtime_error() -> None:
     dsl = """Step one

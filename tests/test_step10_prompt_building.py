@@ -1,17 +1,9 @@
 from __future__ import annotations
 
 import json
-import sys
-from pathlib import Path
 
-
-V02_DIR = Path(__file__).resolve().parents[1]
-if str(V02_DIR) not in sys.path:
-    sys.path.insert(0, str(V02_DIR))
-
-from executor_v02 import build_step_prompt, execute_steps
-from parser_v02 import parse_dsl
-
+from chatdsl_core.executor_v02 import build_step_prompt, execute_steps
+from chatdsl_core.parser_v02 import parse_dsl
 
 def test_prompt_interpolates_embedded_refs_and_appends_non_embedded_inputs() -> None:
     text = """Define inputs
@@ -36,7 +28,6 @@ def test_prompt_interpolates_embedded_refs_and_appends_non_embedded_inputs() -> 
     assert "Respond with ONLY a JSON object." in prompt
     assert "Do not wrap JSON in markdown/code fences." in prompt
 
-
 def test_prompt_without_from_defaults_to_chat_only() -> None:
     step = parse_dsl("Write answer from @CHAT\n/OUT short answer")[0]
     prompt = build_step_prompt(step, context={"CHAT": "recent messages", "tone": "direct"})
@@ -44,7 +35,6 @@ def test_prompt_without_from_defaults_to_chat_only() -> None:
     assert "Write answer from recent messages" in prompt
     assert "- tone: direct" not in prompt
     assert 'Example JSON shape:\n{"error": 0, "out": "done"}' in prompt
-
 
 def test_prompt_formats_multiline_as_with_indented_continuation_lines() -> None:
     step = parse_dsl(
@@ -55,7 +45,6 @@ def test_prompt_formats_multiline_as_with_indented_continuation_lines() -> None:
 
     assert "- summary (nat): first line about risk posture" in prompt
     assert "\n  second line detail" in prompt
-
 
 def test_prompt_does_not_interpolate_email_like_text() -> None:
     text = """Seed b
@@ -70,7 +59,6 @@ def test_prompt_does_not_interpolate_email_like_text() -> None:
     assert "Send to a@b.com" in prompt
     assert "Send to aVALUE.com" not in prompt
     assert "Inputs:\n- b: VALUE" in prompt
-
 
 def test_prompt_supports_custom_sigil_interpolation() -> None:
     text = """Seed topic
@@ -87,7 +75,6 @@ def test_prompt_supports_custom_sigil_interpolation() -> None:
     assert "- summary (nat): concise summary for AI safety" in prompt
     assert "- topic:" not in prompt
 
-
 def test_execute_steps_uses_built_prompts() -> None:
     steps = parse_dsl("One\n/THEN Two")
     seen_calls: list[tuple[str, dict]] = []
@@ -100,7 +87,6 @@ def test_execute_steps_uses_built_prompts() -> None:
     assert len(seen_calls) == 2
     assert len(logs) == 2
     assert outputs == ["ok", "ok"]
-
 
 def test_execute_steps_builds_step_response_schema() -> None:
     steps = parse_dsl("Create\n/DEF score /TYPE float")

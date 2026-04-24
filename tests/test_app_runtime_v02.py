@@ -1,16 +1,8 @@
 from __future__ import annotations
 
 import json
-import sys
-from pathlib import Path
 
-
-V02_DIR = Path(__file__).resolve().parents[1]
-if str(V02_DIR) not in sys.path:
-    sys.path.insert(0, str(V02_DIR))
-
-from runtime_v02 import run_dsl_text
-
+from chatdsl_core.runtime_v02 import run_dsl_text
 
 def test_run_dsl_text_success() -> None:
     res = run_dsl_text(
@@ -24,14 +16,12 @@ def test_run_dsl_text_success() -> None:
     assert res.error is None
     assert len(res.parsed_steps) == 1
 
-
 def test_run_dsl_text_parse_error() -> None:
     res = run_dsl_text("/OUT only output", context={})
     assert res.ok is False
     assert res.error is not None
     assert "Parse error:" in res.error
     assert res.outputs == []
-
 
 def test_run_dsl_text_execution_error() -> None:
     res = run_dsl_text(
@@ -43,7 +33,6 @@ def test_run_dsl_text_execution_error() -> None:
     assert res.error is not None
     assert "Execution error:" in res.error
     assert len(res.parsed_steps) == 1
-
 
 def test_run_dsl_text_preserves_prior_step_vars_after_later_failure() -> None:
     responses = iter(
@@ -62,7 +51,6 @@ def test_run_dsl_text_preserves_prior_step_vars_after_later_failure() -> None:
     assert res.ok is False
     assert res.vars_after == {"a": 1}
     assert "Execution error:" in res.error
-
 
 def test_run_dsl_text_supports_custom_sigil() -> None:
     responses = iter(
@@ -84,7 +72,6 @@ def test_run_dsl_text_supports_custom_sigil() -> None:
     assert res.vars_after == {"topic": "AI safety"}
     assert res.parsed_steps[1]["sigil"] == "#"
 
-
 def test_run_dsl_text_allows_from_existing_context_vars() -> None:
     res = run_dsl_text(
         "Use existing var\n/FROM @notes\n/OUT done",
@@ -94,7 +81,6 @@ def test_run_dsl_text_allows_from_existing_context_vars() -> None:
 
     assert res.ok is True
     assert res.error is None
-
 
 def test_run_dsl_text_allows_from_in_scope_from_existing_context_vars() -> None:
     res = run_dsl_text(
@@ -106,7 +92,6 @@ def test_run_dsl_text_allows_from_in_scope_from_existing_context_vars() -> None:
     assert res.ok is True
     assert res.error is None
 
-
 def test_run_dsl_text_allows_if_condition_from_existing_context_vars() -> None:
     res = run_dsl_text(
         "/IF @ok\n/THEN inside\n/OUT done\n/END",
@@ -117,7 +102,6 @@ def test_run_dsl_text_allows_if_condition_from_existing_context_vars() -> None:
     assert res.ok is True
     assert res.outputs == []
     assert res.vars_after == {"ok": False}
-
 
 def test_run_dsl_text_executes_if_block_without_leaking_branch_vars() -> None:
     responses = iter(

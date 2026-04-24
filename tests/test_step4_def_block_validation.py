@@ -1,17 +1,8 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import pytest
 
-
-V02_DIR = Path(__file__).resolve().parents[1]
-if str(V02_DIR) not in sys.path:
-    sys.path.insert(0, str(V02_DIR))
-
-from parser_v02 import ParseError, parse_dsl
-
+from chatdsl_core.parser_v02 import ParseError, parse_dsl
 
 def test_def_defaults_to_nat_and_varname_as_text() -> None:
     steps = parse_dsl("Write output\n/DEF result")
@@ -20,14 +11,12 @@ def test_def_defaults_to_nat_and_varname_as_text() -> None:
     assert spec.value_type == "nat"
     assert spec.as_text == "result"
 
-
 def test_def_allows_inline_as_then_type_order() -> None:
     steps = parse_dsl("Write output\n/DEF score /AS confidence score /TYPE float")
     spec = steps[0].defs[0]
     assert spec.var_name == "score"
     assert spec.value_type == "float"
     assert spec.as_text == "confidence score"
-
 
 def test_def_allows_multiline_block_type_and_as() -> None:
     text = """Write output
@@ -41,7 +30,6 @@ def test_def_allows_multiline_block_type_and_as() -> None:
     assert spec.value_type == "float"
     assert spec.as_text == "confidence score"
 
-
 def test_def_allows_mixed_inline_and_multiline_commands() -> None:
     text = """Write output
 /DEF answer /AS readable result
@@ -51,7 +39,6 @@ def test_def_allows_mixed_inline_and_multiline_commands() -> None:
     spec = steps[0].defs[0]
     assert spec.value_type == "str"
     assert spec.as_text == "readable result"
-
 
 @pytest.mark.parametrize(
     "dsl,err_substr",

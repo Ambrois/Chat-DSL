@@ -1,15 +1,6 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-
-V02_DIR = Path(__file__).resolve().parents[1]
-if str(V02_DIR) not in sys.path:
-    sys.path.insert(0, str(V02_DIR))
-
-import model_adapters_v02
-
+from chatdsl_core import model_adapters_v02
 
 def test_make_gemini_caller_forwards_model_and_timeout(monkeypatch) -> None:
     captured: dict = {}
@@ -39,7 +30,6 @@ def test_make_gemini_caller_forwards_model_and_timeout(monkeypatch) -> None:
         "timeout_s": 42,
         "response_schema": schema,
     }
-
 
 def test_make_gemini_cheap_caller_omits_response_schema(monkeypatch) -> None:
     captured: dict = {}

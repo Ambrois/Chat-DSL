@@ -1,15 +1,6 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-
-V04_DIR = Path(__file__).resolve().parents[1]
-if str(V04_DIR) not in sys.path:
-    sys.path.insert(0, str(V04_DIR))
-
-from parser_v02 import Program, parse_dsl, parse_program, steps_to_dicts
-
+from chatdsl_core.parser_v02 import Program, parse_dsl, parse_program, steps_to_dicts
 
 def test_parse_program_returns_program_with_step_items() -> None:
     program = parse_program("First step\n/THEN Second step")
@@ -18,7 +9,6 @@ def test_parse_program_returns_program_with_step_items() -> None:
     assert program.sigil == "@"
     assert len(program.items) == 2
     assert [item.text for item in program.items] == ["First step", "Second step"]
-
 
 def test_parse_program_preserves_flat_step_structure() -> None:
     text = """Seed topic

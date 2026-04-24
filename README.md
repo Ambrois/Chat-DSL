@@ -2,7 +2,7 @@
 
 Chat DSL is a versioned experimental repository for a chat-oriented domain-specific language, its parser and executor, and a local Streamlit app for running DSL programs.
 
-The active implementation line is in transition during Phase 2. Shared runtime code now lives in `chatdsl_core/`, the active Streamlit app now lives in `apps/streamlit/`, and the active tests still run from `v0.4/tests/`.
+The active implementation line is in transition during Phase 2. Shared runtime code now lives in `chatdsl_core/`, the active Streamlit app now lives in `apps/streamlit/`, and the active tests now live in `tests/`.
 
 Earlier `v0.x/` directories remain in the repository as historical snapshots.
 
@@ -10,14 +10,14 @@ Phase 2 migration status:
 
 - active shared runtime code has moved to `chatdsl_core/`
 - the active app has moved to `apps/streamlit/`
-- the active tests will move to `tests/` under issue `#10`
+- the active tests have moved to `tests/`
 - historical snapshots will move to `archive/` under issue `#11`
 
-Until those follow-up issues land, the active tests still live under `v0.4/tests/`, and `v0.4/` retains temporary compatibility wrappers.
+Until those follow-up issues land, `v0.4/` retains temporary compatibility wrappers and historical version-specific docs.
 
 ## Setup
 
-This repository is not packaged yet. The active app runs from `apps/streamlit/`, the active tests still run from `v0.4/tests/`, and shared runtime code lives in `chatdsl_core/`.
+This repository is not packaged yet. The active app runs from `apps/streamlit/`, the active tests run from `tests/`, and shared runtime code lives in `chatdsl_core/`.
 
 Recommended local setup:
 
@@ -58,7 +58,7 @@ The `v0.4` app supports:
 Run the active test suite:
 
 ```bash
-python -m pytest -q v0.4/tests
+python -m pytest -q tests
 ```
 
 Run the previous stable line's tests when comparing behavior:
@@ -71,10 +71,10 @@ python -m pytest -q v0.3/tests
 
 - `apps/streamlit/`: active Streamlit app
 - `chatdsl_core/`: active shared runtime code
-- `v0.4/`: active tests, version-specific docs, and temporary compatibility wrappers during Phase 2
+- `tests/`: active test suite
+- `v0.4/`: version-specific docs and temporary compatibility wrappers during Phase 2
 - `v0.1/`, `v0.2/`, `v0.3/`: historical version snapshots
 - `docs/`: project-level documentation
-- `tests/`: scaffolded destination for the active test suite
 - `archive/`: scaffolded destination for historical snapshots
 
 ## Project docs

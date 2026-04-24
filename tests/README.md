@@ -1,11 +1,13 @@
 # tests
 
-Phase 2 placeholder for the future active unversioned test suite.
+Active test suite for Chat DSL.
 
-Current active test path:
-- `v0.4/tests/`
+This directory now contains the active tests for:
 
-Planned move:
-- the active tests will move here under issue `#10`
+- `apps/streamlit/`
+- `chatdsl_core/`
 
-Historical version-specific tests should remain with their archived snapshots after the migration.
+Phase 2 status:
+
+- moved here under issue `#10`
+- historical version-specific tests should remain with their archived snapshots after the migration

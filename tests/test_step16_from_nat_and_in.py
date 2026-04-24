@@ -1,17 +1,8 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import pytest
 
-
-V03_DIR = Path(__file__).resolve().parents[1]
-if str(V03_DIR) not in sys.path:
-    sys.path.insert(0, str(V03_DIR))
-
-from parser_v02 import ParseError, parse_dsl
-
+from chatdsl_core.parser_v02 import ParseError, parse_dsl
 
 def test_from_accepts_mixed_variable_and_nat_items() -> None:
     text = """Seed vars
@@ -30,7 +21,6 @@ def test_from_accepts_mixed_variable_and_nat_items() -> None:
     assert step.from_items[2].value == "open tasks"
     assert step.from_items[2].scope_var == "notes"
 
-
 def test_from_in_accepts_predeclared_scope_variable() -> None:
     steps = parse_dsl(
         "Use scoped search\n/FROM key tasks /IN @notes\n/OUT done",
@@ -40,7 +30,6 @@ def test_from_in_accepts_predeclared_scope_variable() -> None:
     assert steps[0].from_items is not None
     assert steps[0].from_items[0].kind == "nat"
     assert steps[0].from_items[0].scope_var == "notes"
-
 
 @pytest.mark.parametrize(
     "dsl, err",
@@ -55,7 +44,6 @@ def test_from_in_accepts_predeclared_scope_variable() -> None:
 def test_from_in_errors(dsl: str, err: str) -> None:
     with pytest.raises(ParseError, match=err):
         parse_dsl(dsl)
-
 
 @pytest.mark.parametrize(
     "dsl",

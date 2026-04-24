@@ -1,17 +1,8 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import pytest
 
-
-V04_DIR = Path(__file__).resolve().parents[1]
-if str(V04_DIR) not in sys.path:
-    sys.path.insert(0, str(V04_DIR))
-
-from parser_v02 import IfNode, ParseError, Step, parse_dsl, parse_program
-
+from chatdsl_core.parser_v02 import IfNode, ParseError, Step, parse_dsl, parse_program
 
 def test_parse_program_builds_if_node_with_nested_steps() -> None:
     text = """Choose path
@@ -35,7 +26,6 @@ def test_parse_program_builds_if_node_with_nested_steps() -> None:
         "Draft follow-up",
     ]
 
-
 def test_parse_program_supports_nested_if_blocks() -> None:
     text = """Seed
 /DEF outer /TYPE bool
@@ -57,7 +47,6 @@ def test_parse_program_supports_nested_if_blocks() -> None:
     inner_if = outer_if.items[1]
     assert inner_if.condition_var == "inner"
 
-
 def test_parse_program_accepts_predeclared_if_condition_variable() -> None:
     program = parse_program(
         "/IF @ok\n/THEN inside\n/OUT done\n/END",
@@ -67,7 +56,6 @@ def test_parse_program_accepts_predeclared_if_condition_variable() -> None:
     assert len(program.items) == 1
     assert isinstance(program.items[0], IfNode)
     assert program.items[0].condition_var == "ok"
-
 
 @pytest.mark.parametrize(
     "dsl, err",
@@ -83,7 +71,6 @@ def test_if_block_parse_errors(dsl: str, err: str) -> None:
     with pytest.raises(ParseError, match=err):
         parse_program(dsl)
 
-
 def test_vars_defined_in_if_are_visible_only_inside_that_block() -> None:
     text = """Seed
 /DEF ok /TYPE bool
@@ -96,7 +83,6 @@ def test_vars_defined_in_if_are_visible_only_inside_that_block() -> None:
 /END
 """
     parse_program(text)
-
 
 def test_vars_defined_in_if_are_not_visible_after_end() -> None:
     text = """Seed
@@ -111,7 +97,6 @@ def test_vars_defined_in_if_are_not_visible_after_end() -> None:
 """
     with pytest.raises(ParseError, match="undefined variable @x"):
         parse_program(text)
-
 
 def test_parse_dsl_rejects_block_programs() -> None:
     text = """Seed

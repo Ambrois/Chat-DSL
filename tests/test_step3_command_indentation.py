@@ -1,17 +1,8 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import pytest
 
-
-V02_DIR = Path(__file__).resolve().parents[1]
-if str(V02_DIR) not in sys.path:
-    sys.path.insert(0, str(V02_DIR))
-
-from parser_v02 import ParseError, parse_dsl
-
+from chatdsl_core.parser_v02 import ParseError, parse_dsl
 
 def _normalized(steps: list) -> list:
     out = []
@@ -27,7 +18,6 @@ def _normalized(steps: list) -> list:
             }
         )
     return out
-
 
 def test_indented_and_non_indented_commands_parse_equally() -> None:
     plain = """Seed variables.
@@ -51,7 +41,6 @@ def test_indented_and_non_indented_commands_parse_equally() -> None:
       /OUT include one caveat
 """
     assert _normalized(parse_dsl(plain)) == _normalized(parse_dsl(indented))
-
 
 def test_then_prefix_is_not_then_split_and_is_unknown_command_error() -> None:
     with pytest.raises(ParseError, match="unknown command /THENX"):

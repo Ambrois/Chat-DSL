@@ -1,17 +1,8 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import pytest
 
-
-V02_DIR = Path(__file__).resolve().parents[1]
-if str(V02_DIR) not in sys.path:
-    sys.path.insert(0, str(V02_DIR))
-
-from parser_v02 import ParseError, parse_dsl
-
+from chatdsl_core.parser_v02 import ParseError, parse_dsl
 
 def test_from_accepts_previously_defined_variable() -> None:
     text = """Create seed
@@ -24,12 +15,10 @@ def test_from_accepts_previously_defined_variable() -> None:
     assert len(steps) == 2
     assert [it.value for it in (steps[1].from_items or []) if it.kind == "var"] == ["seed"]
 
-
 def test_from_accepts_predeclared_context_variable() -> None:
     steps = parse_dsl("Use existing var\n/FROM @seed\n/OUT done", predeclared_vars={"seed"})
     assert len(steps) == 1
     assert [it.value for it in (steps[0].from_items or []) if it.kind == "var"] == ["seed"]
-
 
 @pytest.mark.parametrize(
     "dsl",
@@ -42,7 +31,6 @@ def test_from_accepts_predeclared_context_variable() -> None:
 def test_from_rejects_undefined_or_forward_references(dsl: str) -> None:
     with pytest.raises(ParseError, match="/FROM references undefined variable"):
         parse_dsl(dsl)
-
 
 def test_from_allows_redefined_variable_in_later_steps() -> None:
     text = """Create x

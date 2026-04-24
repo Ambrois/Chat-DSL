@@ -1,19 +1,11 @@
 from __future__ import annotations
 
 import json
-import sys
-from pathlib import Path
 
 import pytest
 
-
-V02_DIR = Path(__file__).resolve().parents[1]
-if str(V02_DIR) not in sys.path:
-    sys.path.insert(0, str(V02_DIR))
-
-from executor_v02 import execute_steps
-from parser_v02 import parse_dsl
-
+from chatdsl_core.executor_v02 import execute_steps
+from chatdsl_core.parser_v02 import parse_dsl
 
 def test_failed_step_does_not_partially_commit_its_vars() -> None:
     steps = parse_dsl("Create vars\n/DEF a /TYPE int\n/DEF b /TYPE int")
@@ -29,7 +21,6 @@ def test_failed_step_does_not_partially_commit_its_vars() -> None:
         )
 
     assert ctx == {}
-
 
 def test_execution_stops_after_runtime_failure_and_keeps_previous_step_vars() -> None:
     steps = parse_dsl(
@@ -60,7 +51,6 @@ def test_execution_stops_after_runtime_failure_and_keeps_previous_step_vars() ->
 
     assert calls["count"] == 2
     assert ctx == {"a": 10}
-
 
 def test_execution_stops_on_error_equals_one_without_committing_failing_step() -> None:
     steps = parse_dsl(

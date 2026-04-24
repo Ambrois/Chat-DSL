@@ -1,19 +1,11 @@
 from __future__ import annotations
 
 import json
-import sys
-from pathlib import Path
 
 import pytest
 
-
-V02_DIR = Path(__file__).resolve().parents[1]
-if str(V02_DIR) not in sys.path:
-    sys.path.insert(0, str(V02_DIR))
-
-from executor_v02 import execute_steps
-from parser_v02 import parse_dsl
-
+from chatdsl_core.executor_v02 import execute_steps
+from chatdsl_core.parser_v02 import parse_dsl
 
 def test_runtime_contract_accepts_valid_response_without_defs() -> None:
     steps = parse_dsl("Write output\n/OUT concise")
@@ -26,7 +18,6 @@ def test_runtime_contract_accepts_valid_response_without_defs() -> None:
     assert outputs == ["done"]
     assert logs[0]["parsed_json"]["out"] == "done"
 
-
 def test_runtime_contract_accepts_valid_response_with_defs() -> None:
     steps = parse_dsl("Create value\n/DEF x /TYPE int")
     ctx, _, outputs = execute_steps(
@@ -36,7 +27,6 @@ def test_runtime_contract_accepts_valid_response_with_defs() -> None:
     )
     assert ctx["x"] == 3
     assert outputs == ["ok"]
-
 
 @pytest.mark.parametrize(
     "response,err_substr",
@@ -55,7 +45,6 @@ def test_runtime_contract_rejects_invalid_base_responses(
     with pytest.raises(ValueError, match=err_substr):
         execute_steps(steps, context={}, call_model=lambda *_: response)
 
-
 @pytest.mark.parametrize(
     "response,err_substr",
     [
@@ -73,7 +62,6 @@ def test_runtime_contract_rejects_invalid_def_payloads(
     with pytest.raises(ValueError, match=err_substr):
         execute_steps(steps, context={}, call_model=lambda *_: response)
 
-
 def test_runtime_contract_rejects_error_equals_one_and_stops() -> None:
     steps = parse_dsl("Create value\n/DEF x")
     ctx: dict = {}
@@ -84,7 +72,6 @@ def test_runtime_contract_rejects_error_equals_one_and_stops() -> None:
             call_model=lambda *_: json.dumps({"error": 1, "out": "failed", "vars": {"x": 1}}),
         )
     assert ctx == {}
-
 
 def test_runtime_contract_parse_error_includes_raw_snippet() -> None:
     steps = parse_dsl("Write output")
