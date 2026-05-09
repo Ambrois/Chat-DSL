@@ -12,8 +12,8 @@ It covers:
 - persistence and message metadata used by the interface
 
 It does not redefine DSL syntax/runtime rules. See:
-- `v0.4/spec_changes_from_last.md`
-- `v0.4/dsl_v0.4_specs.md`
+- `archive/v0.4/spec_changes_from_last.md`
+- `archive/v0.4/dsl_v0.4_specs.md`
 
 ---
 
@@ -22,7 +22,6 @@ It does not redefine DSL syntax/runtime rules. See:
 - Framework: Streamlit
 - Entry point: `streamlit run apps/streamlit/app.py`
 - Primary persisted state file: `apps/streamlit/state/chats.json`
-- Legacy state fallback: `v0.4/state/chats.json`
 - Optional environment variables:
   - `GEMINI_API_KEY`
   - `GEMINI_MODEL`

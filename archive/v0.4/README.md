@@ -1,11 +1,8 @@
 # Chat DSL v0.4
 
-This folder is the `v0.4` historical reference work area.
+This folder is the archived `v0.4` historical reference work area.
 
-`v0.4` is the first block-structured control-flow release. The active app and shared runtime modules now live in `apps/streamlit/` and `chatdsl_core/`, while `v0.4/` contains:
-
-- version-specific documentation and reference material
-- legacy local state under `v0.4/state/` that can still be read as fallback
+`v0.4` is the first block-structured control-flow release. The active app and shared runtime modules now live in `apps/streamlit/` and `chatdsl_core/`, while `archive/v0.4/` contains version-specific documentation and reference material.
 
 Historical focus:
 

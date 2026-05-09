@@ -18,9 +18,7 @@ The active system is organized around:
 - `chatdsl_core/` as the active home of shared runtime code
 - `tests/` as the active home of the current test suite
 - `archive/` as the home of historical version snapshots
-- `v0.4/` as historical version-specific docs and a legacy state fallback location
-
-Earlier version folders remain useful for reference and regression comparison, but they are no longer the default target for new product work.
+- `archive/v0.4/` as the home of `v0.4` historical reference docs
 
 ## Repository layout
 
@@ -35,12 +33,11 @@ Earlier version folders remain useful for reference and regression comparison, b
 - `archive/v0.1/`: frozen early baseline
 - `archive/v0.2/`: intermediate version snapshot
 - `archive/v0.3/`: stable predecessor to `v0.4`
+- `archive/v0.4/`: historical documentation for the first block-structured release
 
 ### Historical reference material
 
-- `v0.4/`: historical version docs and legacy state retained at the repo root
-
-Each archived version directory is largely self-contained. This makes history easy to inspect without treating archived code as part of the active implementation.
+Archived version directories are retained to make history easy to inspect without treating archived material as part of the active implementation.
 
 ### Project docs
 
@@ -123,7 +120,6 @@ Key files:
 
 Responsibilities:
 - persist chats and variables to JSON files under `apps/streamlit/state/`
-- read legacy state from `v0.4/state/` when the new location is empty
 - backfill metadata for older history records
 - maintain append-only message/version history
 - project visible history for edited DSL runs
@@ -168,7 +164,7 @@ stored chat history
 
 ## Important invariants
 
-- The active system lives in `apps/streamlit/`, `chatdsl_core/`, and `tests/`, while historical version material lives in `archive/` and `v0.4/`.
+- The active system lives in `apps/streamlit/`, `chatdsl_core/`, and `tests/`, while historical version material lives under `archive/`.
 - Historical version folders are snapshots, not peer active systems.
 - The parser is responsible for producing a valid program structure before execution begins.
 - `CHAT` and `ALL` are read-only built-in context variables and should not become ordinary mutable user vars.
@@ -188,7 +184,6 @@ stored chat history
 - The append-only versioning model and projected-history logic in `chatdsl_core/versioning_v02.py`
 - The persisted JSON shape used by `chatdsl_core/state_store_v02.py`
 - The parser-to-executor contract, especially the `Program` and node structures used by `chatdsl_core`
-- The persisted JSON shape and fallback behavior used by `chatdsl_core/state_store_v02.py`
 
 ## Contribution note
 

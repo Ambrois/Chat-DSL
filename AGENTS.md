@@ -5,10 +5,11 @@ This file defines how contributors and coding agents should work in this reposit
 ## Before starting
 
 1. Read `README.md`.
-2. Read the relevant parts of `docs/architecture.md`.
-3. Identify the GitHub Issue for the work.
-4. If no GitHub Issue exists and the work is substantial, create or request one before changing code or durable docs.
-5. Confirm the issue's goal, scope, acceptance criteria, and validation steps before implementation.
+2. Read `docs/repo_operating_model.md` to understand the repository workflow and document responsibilities.
+3. Read the relevant parts of `docs/architecture.md`.
+4. Identify the GitHub Issue for the work.
+5. If no GitHub Issue exists and the work is substantial, create or request one before changing code or durable docs.
+6. Confirm the issue's goal, scope, acceptance criteria, and validation steps before implementation.
 
 ## Work tracking
 
@@ -23,10 +24,17 @@ Substantial work must always map to a GitHub Issue.
 - `apps/streamlit/` is the active home for the Streamlit app.
 - `chatdsl_core/` is the active home for shared parser, executor, runtime, model-integration, persistence, and versioning code.
 - `tests/` is the active home for the current test suite.
-- `v0.4/` now holds historical version-specific docs and legacy state fallback only. Do not target it for active product work unless an issue explicitly requires it.
 - `archive/v0.1/`, `archive/v0.2/`, and `archive/v0.3/` are historical version snapshots unless a GitHub Issue explicitly says otherwise.
+- `archive/v0.4/` holds historical version-specific docs for the first block-structured release. Do not target archived version folders for active product work unless an issue explicitly requires it.
 - Treat version-specific spec and README files as supporting documentation, not as replacements for the top-level `README.md`, roadmap, architecture docs, or GitHub Issues.
 - Follow existing patterns in the active path you are changing before introducing new abstractions or reorganizing code.
+
+## Past mistakes
+
+- Do not skip `docs/repo_operating_model.md` before substantial work. It defines the expected issue-first workflow and where project knowledge belongs.
+- When repository layout or workflow guidance changes, update `AGENTS.md` along with `README.md` and `docs/architecture.md` if agent instructions would otherwise become stale.
+- If a cleanup removes fallback behavior or relocates local state, call out the migration or data-retention plan explicitly before executing it.
+- Do not treat chat messages as a substitute for durable repo guidance. If a repeated mistake reveals a missing workflow rule, add or update that rule in `AGENTS.md`.
 
 ## Scope control
 

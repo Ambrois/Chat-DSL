@@ -4,7 +4,7 @@ Chat DSL is a versioned experimental repository for a chat-oriented domain-speci
 
 The active application lives in `apps/streamlit/`, shared runtime code lives in `chatdsl_core/`, and the active test suite lives in `tests/`.
 
-Historical snapshots live under `archive/`. `v0.4/` remains in the repository as historical version-specific reference material and a legacy state fallback location.
+Historical snapshots and historical version-specific reference material live under `archive/`.
 
 ## Setup
 
@@ -37,7 +37,7 @@ Run the active app:
 streamlit run apps/streamlit/app.py
 ```
 
-The `v0.4` app supports:
+The active app supports:
 
 - DSL execution through the `v0.4` parser and executor
 - local chat persistence
@@ -63,9 +63,9 @@ python -m pytest -q archive/v0.3/tests
 - `apps/streamlit/`: active Streamlit app
 - `chatdsl_core/`: active shared runtime code
 - `tests/`: active test suite
-- `v0.4/`: historical version-specific docs and legacy state fallback
+- `archive/v0.4/`: historical version-specific docs for `v0.4`
 - `docs/`: project-level documentation
-- `archive/`: archived `v0.1/`, `v0.2/`, and `v0.3/` snapshots
+- `archive/`: archived version snapshots and historical reference material
 
 ## Project docs
 
