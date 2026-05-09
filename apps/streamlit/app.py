@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from apps.streamlit.dsl_render_utils import dsl_to_highlighted_html, infer_message_sigil
+from apps.streamlit.vars_panel_v02 import resolve_vars_panel_data
 from chatdsl_core.parser_v02 import ParseError, parse_program, program_to_dicts
 from chatdsl_core.executor_v02 import execute_program
 from chatdsl_core.model_adapters_v02 import make_gemini_caller, make_gemini_cheap_caller
@@ -1387,19 +1388,13 @@ if st.session_state.get("history_view_chat_id") == active_chat.get("id"):
 
 display_history = project_visible_history(chat_history, cutoff_index=history_view_cutoff)
 
-if mode == "Use DSL":
-    vars_data = None
-    if history_view_msg is not None:
-        for msg in reversed(display_history):
-            if msg.get("role") == "user" and msg.get("mode") == "dsl":
-                meta = msg.get("meta", {})
-                if isinstance(meta.get("vars_after"), dict):
-                    vars_data = meta.get("vars_after")
-                    break
-        if vars_data is None:
-            vars_data = {}
-    elif active_last_run:
-        vars_data = active_last_run["vars"] or {}
+vars_data = resolve_vars_panel_data(
+    mode=mode,
+    active_chat=active_chat,
+    active_last_run=active_last_run,
+    history_view_msg=history_view_msg,
+    display_history=display_history,
+)
 
 if mode == "Use DSL" and vars_data is not None:
     st.subheader("Variables")
